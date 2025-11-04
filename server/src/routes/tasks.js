@@ -10,7 +10,10 @@ const router = Router();
 router.use(auth);
 
 router.get('/', async (req, res) => {
-  const tasks = await Task.find({ user: req.user.id }).sort({ createdAt: -1 });
+  const includeCompleted = req.query.includeCompleted === 'true';
+  const query = { user: req.user.id };
+  if (!includeCompleted) query.status = { $ne: 'completed' };
+  const tasks = await Task.find(query).sort({ createdAt: -1 });
   res.json(tasks);
 });
 
@@ -84,7 +87,13 @@ router.put('/:id', async (req, res) => {
     if (deadline !== undefined) task.deadline = new Date(deadline);
     if (reminderType !== undefined) task.reminderType = reminderType === 'weekly' ? 'weekly' : 'once';
     if (reminderOffset !== undefined) task.reminderOffset = reminderOffset;
-    if (status !== undefined) task.status = status;
+    if (status !== undefined) {
+      // Prevent resuming once stopped/completed
+      if (task.status !== 'pending' && status === 'pending') {
+        return res.status(400).json({ error: 'Task cannot be resumed once stopped or completed' });
+      }
+      task.status = status;
+    }
     if (endDate !== undefined) task.endDate = endDate ? new Date(endDate) : undefined;
 
     if (task.reminderType === 'weekly') {
@@ -108,7 +117,7 @@ router.put('/:id', async (req, res) => {
     // cancel previous job(s) for this task
     try { await agenda.cancel({ name: JOB_NAME, 'data.taskId': task._id.toString() }); } catch {}
 
-    if (task.status !== 'completed') {
+    if (task.status === 'pending') {
       const { sendAt, normalizedDeadline } = computeInitialSendTime(task.deadline, task.reminderOffset, task.reminderType, { endDate: task.endDate });
       if (+normalizedDeadline !== +task.deadline) task.deadline = normalizedDeadline;
       if (!sendAt) return res.status(400).json({ error: 'No valid future reminder occurs before endDate' });
@@ -143,3 +152,22 @@ router.delete('/:id', async (req, res) => {
 });
 
 export default router;
+
+// Stop a task: cancel future reminders and mark as stopped (irreversible)
+router.post('/:id/stop', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const task = await Task.findOne({ _id: id, user: req.user.id });
+    if (!task) return res.status(404).json({ error: 'Not found' });
+    if (task.status !== 'pending') return res.status(400).json({ error: 'Task already completed or stopped' });
+
+    try { await agenda.cancel({ name: JOB_NAME, 'data.taskId': task._id.toString() }); } catch {}
+    task.status = 'stopped';
+    task.jobId = undefined;
+    await task.save();
+    res.json({ ok: true, task });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});

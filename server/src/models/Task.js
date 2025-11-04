@@ -8,7 +8,7 @@ const taskSchema = new mongoose.Schema(
     endDate: { type: Date },
     reminderType: { type: String, enum: ['once', 'weekly'], default: 'once' },
     reminderOffset: { type: String, enum: ['3d', '1d', '3h'], required: true },
-    status: { type: String, enum: ['pending', 'completed'], default: 'pending' },
+    status: { type: String, enum: ['pending', 'completed', 'stopped'], default: 'pending' },
     jobId: { type: String },
     lastSentAt: { type: Date },
   },

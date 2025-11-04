@@ -172,6 +172,21 @@
             }
           }
         }
+        ,
+        {
+          "name": "Stop Task",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/tasks/{{taskId}}/stop",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tasks", "{{taskId}}", "stop"]
+            }
+          }
+        }
       ]
     }
   ],

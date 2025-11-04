@@ -30,6 +30,7 @@
           <div v-if="t.reminderType==='weekly'">End: {{ t.endDate ? formatDate(t.endDate) : '-' }}</div>
         </div>
         <button @click="editTask(t)">Edit</button>
+        <button v-if="t.status==='pending'" @click="stopTask(t)">Stop</button>
         <button @click="removeTask(t)">Delete</button>
       </div>
     </div>
@@ -116,6 +117,12 @@ function cancelEdit(){ editing.value = false }
 async function removeTask(t){
   if(!confirm('Delete this task?')) return
   await http.delete(`/api/tasks/${t._id}`)
+  await load()
+}
+
+async function stopTask(t){
+  if(!confirm('Stop this task? This cannot be resumed.')) return
+  await http.post(`/api/tasks/${t._id}/stop`)
   await load()
 }
 
