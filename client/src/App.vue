@@ -20,7 +20,16 @@ onMounted(() => {
   token.value = localStorage.getItem('token')
 })
 
-function logout() {
+async function logout() {
+  try {
+    const token = localStorage.getItem('token')
+    if (token) {
+      await fetch((import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api/auth/logout', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+    }
+  } catch {}
   localStorage.removeItem('token')
   window.location.href = '/login'
 }
