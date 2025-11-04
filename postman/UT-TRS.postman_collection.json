@@ -27,20 +27,6 @@
             "header": [
               { "key": "Content-Type", "value": "application/json" }
             ],
-            {
-              "name": "Logout",
-              "request": {
-                "method": "POST",
-                "header": [
-                  { "key": "Authorization", "value": "Bearer {{token}}" }
-                ],
-                "url": {
-                  "raw": "{{base_url}}/api/auth/logout",
-                  "host": ["{{base_url}}"],
-                  "path": ["api", "auth", "logout"]
-                }
-              }
-            }
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Demo User\",\n  \"phone\": \"628123456789\",\n  \"password\": \"password123\"\n}"
@@ -87,6 +73,20 @@
               }
             }
           ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "logout"]
+            }
+          }
         }
       ]
     },
