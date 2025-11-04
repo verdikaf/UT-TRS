@@ -2,6 +2,7 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { User } from '../models/User.js';
 import { auth, signToken } from '../middleware/auth.js';
+import { Session } from '../models/Session.js';
 
 const router = Router();
 
@@ -47,5 +48,11 @@ export default router;
 // simply validates the current token and returns ok, allowing clients
 // to call it before clearing their local token.
 router.post('/logout', auth, async (req, res) => {
+  try {
+    const jti = req.sessionJti;
+    if (jti) {
+      await Session.updateOne({ jti, user: req.user.id }, { $set: { revoked: true } });
+    }
+  } catch {}
   return res.json({ ok: true });
 });

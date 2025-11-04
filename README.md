@@ -4,6 +4,8 @@ A simple reminder system where users register/login and create tasks with deadli
 
 ## Features
 - Register and login with phone + password (JWT)
+- Secure logout (server-side revocation)
+- Auto-logout on inactivity (configurable idle timeout)
 - Create, edit, delete tasks
 - Reminder offsets: 3 days, 1 day, or 3 hours before deadline
 - One-time or weekly recurring reminders
@@ -18,31 +20,44 @@ A simple reminder system where users register/login and create tasks with deadli
 ## Setup
 1. Backend env:
    - Copy `server/.env.example` to `server/.env` and fill values.
+  - Key vars:
+    - `JWT_EXPIRES_IN=7d` (token lifetime)
+    - `MAX_IDLE_MINUTES=5` (server-enforced inactivity timeout)
 2. Frontend env (optional):
    - Copy `client/.env.example` to `client/.env` if you need to change API URL.
 
-## Install
-Open two terminals.
+## Run Locally
 
-Terminal A (backend):
-```powershell
-cd "d:\UT\CAPSTONE PROJECT\UT-TRS\server"
+1. Clone the repo and enter the project folder:
+```bash
+git clone https://github.com/verdikaf/UT-TRS.git
+cd UT-TRS
+```
+
+2. Start the backend (Terminal A):
+```bash
+cd server
 npm install
 npm run dev
 ```
 The API runs at `http://localhost:4000`.
 
-Terminal B (frontend):
-```powershell
-cd "d:\UT\CAPSTONE PROJECT\UT-TRS\client"
+3. Start the frontend (Terminal B):
+```bash
+cd client
 npm install
 npm run dev
 ```
 The web app runs at `http://localhost:5173`.
 
+Notes:
+- Commands are the same for PowerShell, Command Prompt, or bash/zsh.
+- Ensure env files are configured as described below.
+
 ## API Notes
 - Registration: `POST /api/auth/register` { name, phone, password }
 - Login: `POST /api/auth/login` { phone, password } → returns JWT
+- Logout: `POST /api/auth/logout` (requires Authorization header)
 - Tasks CRUD under `/api/tasks` (Authorization: `Bearer <token>`)
 
 ## Fonnte
@@ -61,3 +76,4 @@ The web app runs at `http://localhost:5173`.
 ## Dev Tips
 - Update `CLIENT_URL` in `server/.env` if the frontend origin differs.
 - To change polling, adjust `processEvery` in `server/src/config/agenda.js`.
+- Idle timeout: server rejects requests when session is idle beyond `MAX_IDLE_MINUTES`. Client should handle 401 by redirecting to login.
