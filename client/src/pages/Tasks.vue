@@ -22,6 +22,11 @@
 
     <div class="card">
       <h2>My Tasks</h2>
+      <div class="row" style="margin-bottom:8px;align-items:center;">
+        <label style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" v-model="includeCompleted" @change="load" /> Include completed
+        </label>
+      </div>
       <div v-for="t in tasks" :key="t._id" class="row" style="align-items:center; border-bottom:1px solid #eee; padding:8px 0;">
         <div style="flex:1">
           <div><strong>{{ t.name }}</strong></div>
@@ -29,13 +34,13 @@
           <div>Type: {{ t.reminderType }} | Offset: {{ t.reminderOffset }} | Status: {{ t.status }}</div>
           <div v-if="t.reminderType==='weekly'">End: {{ t.endDate ? formatDate(t.endDate) : '-' }}</div>
         </div>
-        <button @click="editTask(t)">Edit</button>
-        <button v-if="t.status==='pending'" @click="stopTask(t)">Stop</button>
+        <!-- Edit/Stop removed per requirement; only view and delete -->
         <button @click="removeTask(t)">Delete</button>
       </div>
     </div>
 
-    <div v-if="editing" class="card">
+    <!-- Edit form hidden per requirement (view/delete only) -->
+    <div v-if="editing" class="card" style="display:none;">
       <h2>Edit Task</h2>
       <div class="row">
         <input v-model="editForm.name" />
@@ -76,6 +81,7 @@ http.interceptors.request.use(config => {
 const form = ref({ name: '', deadline: '', reminderType: 'once', reminderOffset: '3d', endDate: '' })
 const error = ref('')
 const tasks = ref([])
+const includeCompleted = ref(false)
 
 const editing = ref(false)
 const editForm = ref({ _id: '', name: '', deadline: '', reminderType: 'once', reminderOffset: '3d', status: 'pending', endDate: '' })
@@ -83,7 +89,7 @@ const editForm = ref({ _id: '', name: '', deadline: '', reminderType: 'once', re
 function formatDate(d){ return new Date(d).toLocaleString() }
 
 async function load(){
-  const { data } = await http.get('/api/tasks')
+  const { data } = await http.get(`/api/tasks?includeCompleted=${includeCompleted.value}`)
   tasks.value = data
 }
 
