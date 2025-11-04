@@ -3,7 +3,7 @@ import { auth } from '../middleware/auth.js';
 import { Task } from '../models/Task.js';
 import { agenda } from '../config/agenda.js';
 import { JOB_NAME } from '../jobs/reminder.js';
-import { computeInitialSendTime } from '../utils/scheduler.js';
+import { computeInitialSendTime, computeOffsetMs } from '../utils/scheduler.js';
 
 const router = Router();
 
@@ -20,6 +20,19 @@ router.post('/', async (req, res) => {
     if (!name || !deadline || !reminderOffset) return res.status(400).json({ error: 'Missing fields' });
 
     const deadlineDate = new Date(deadline);
+
+    // Validate reminder time: now must be before (deadline - offset)
+    try {
+      const sendAtCheck = new Date(deadlineDate.getTime() - computeOffsetMs(reminderOffset));
+      const now = new Date();
+      if (now >= sendAtCheck) {
+        return res.status(400).json({
+          error: 'Selected reminder time has already passed for this deadline. Adjust the deadline or choose a different reminder offset.'
+        });
+      }
+    } catch (err) {
+      return res.status(400).json({ error: 'Invalid reminderOffset' });
+    }
     const task = await Task.create({
       user: req.user.id,
       name,
@@ -56,6 +69,19 @@ router.put('/:id', async (req, res) => {
     if (reminderType !== undefined) task.reminderType = reminderType === 'weekly' ? 'weekly' : 'once';
     if (reminderOffset !== undefined) task.reminderOffset = reminderOffset;
     if (status !== undefined) task.status = status;
+
+    // Validate reminder time after applying updates
+    try {
+      const sendAtCheck = new Date(task.deadline.getTime() - computeOffsetMs(task.reminderOffset));
+      const now = new Date();
+      if (now >= sendAtCheck) {
+        return res.status(400).json({
+          error: 'Selected reminder time has already passed for this deadline. Adjust the deadline or choose a different reminder offset.'
+        });
+      }
+    } catch (err) {
+      return res.status(400).json({ error: 'Invalid reminderOffset' });
+    }
 
     // cancel previous job(s) for this task
     try { await agenda.cancel({ name: JOB_NAME, 'data.taskId': task._id.toString() }); } catch {}
