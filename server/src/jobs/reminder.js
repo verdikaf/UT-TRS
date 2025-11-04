@@ -27,11 +27,17 @@ export function registerReminderJob(agenda) {
         task.status = 'completed';
         // no further scheduling
       } else if (task.reminderType === 'weekly') {
-        const { nextDeadline, sendAt } = computeNextWeekly(task.deadline, task.reminderOffset);
-        task.deadline = nextDeadline;
-        // schedule next run
-        const nextJob = await agenda.schedule(sendAt, JOB_NAME, { taskId: task._id.toString() });
-        task.jobId = nextJob?.attrs?._id?.toString();
+        const { nextDeadline, sendAt } = computeNextWeekly(task.deadline, task.reminderOffset, task.endDate);
+        if (nextDeadline && sendAt) {
+          task.deadline = nextDeadline;
+          // schedule next run
+          const nextJob = await agenda.schedule(sendAt, JOB_NAME, { taskId: task._id.toString() });
+          task.jobId = nextJob?.attrs?._id?.toString();
+        } else {
+          // end of recurrence window
+          task.status = 'completed';
+          task.jobId = undefined;
+        }
       }
       await task.save();
     } catch (err) {

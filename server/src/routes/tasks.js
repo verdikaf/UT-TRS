@@ -16,10 +16,21 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { name, deadline, reminderType, reminderOffset } = req.body;
+    const { name, deadline, reminderType, reminderOffset, endDate } = req.body;
     if (!name || !deadline || !reminderOffset) return res.status(400).json({ error: 'Missing fields' });
 
     const deadlineDate = new Date(deadline);
+    let endDateVal = undefined;
+    if (reminderType === 'weekly') {
+      if (!endDate) return res.status(400).json({ error: 'endDate is required for weekly recurring tasks' });
+      endDateVal = new Date(endDate);
+      if (!(endDateVal instanceof Date) || isNaN(+endDateVal)) {
+        return res.status(400).json({ error: 'Invalid endDate' });
+      }
+      if (endDateVal < deadlineDate) {
+        return res.status(400).json({ error: 'endDate must be on or after the start deadline' });
+      }
+    }
 
     // Validate reminder time: now must be before (deadline - offset)
     try {
@@ -39,11 +50,16 @@ router.post('/', async (req, res) => {
       deadline: deadlineDate,
       reminderType: reminderType === 'weekly' ? 'weekly' : 'once',
       reminderOffset,
+      endDate: endDateVal,
     });
 
-    const { sendAt, normalizedDeadline } = computeInitialSendTime(deadlineDate, task.reminderOffset, task.reminderType);
+    const { sendAt, normalizedDeadline } = computeInitialSendTime(deadlineDate, task.reminderOffset, task.reminderType, { endDate: endDateVal });
     if (+normalizedDeadline !== +task.deadline) {
       task.deadline = normalizedDeadline;
+    }
+
+    if (!sendAt) {
+      return res.status(400).json({ error: 'No valid future reminder occurs before endDate' });
     }
 
     const job = await agenda.schedule(sendAt, JOB_NAME, { taskId: task._id.toString() });
@@ -60,7 +76,7 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, deadline, reminderType, reminderOffset, status } = req.body;
+    const { name, deadline, reminderType, reminderOffset, status, endDate } = req.body;
     const task = await Task.findOne({ _id: id, user: req.user.id });
     if (!task) return res.status(404).json({ error: 'Not found' });
 
@@ -69,6 +85,12 @@ router.put('/:id', async (req, res) => {
     if (reminderType !== undefined) task.reminderType = reminderType === 'weekly' ? 'weekly' : 'once';
     if (reminderOffset !== undefined) task.reminderOffset = reminderOffset;
     if (status !== undefined) task.status = status;
+    if (endDate !== undefined) task.endDate = endDate ? new Date(endDate) : undefined;
+
+    if (task.reminderType === 'weekly') {
+      if (!task.endDate) return res.status(400).json({ error: 'endDate is required for weekly recurring tasks' });
+      if (task.endDate < task.deadline) return res.status(400).json({ error: 'endDate must be on or after the start deadline' });
+    }
 
     // Validate reminder time after applying updates
     try {
@@ -87,8 +109,9 @@ router.put('/:id', async (req, res) => {
     try { await agenda.cancel({ name: JOB_NAME, 'data.taskId': task._id.toString() }); } catch {}
 
     if (task.status !== 'completed') {
-      const { sendAt, normalizedDeadline } = computeInitialSendTime(task.deadline, task.reminderOffset, task.reminderType);
+      const { sendAt, normalizedDeadline } = computeInitialSendTime(task.deadline, task.reminderOffset, task.reminderType, { endDate: task.endDate });
       if (+normalizedDeadline !== +task.deadline) task.deadline = normalizedDeadline;
+      if (!sendAt) return res.status(400).json({ error: 'No valid future reminder occurs before endDate' });
       const job = await agenda.schedule(sendAt, JOB_NAME, { taskId: task._id.toString() });
       task.jobId = job?.attrs?._id?.toString();
     } else {

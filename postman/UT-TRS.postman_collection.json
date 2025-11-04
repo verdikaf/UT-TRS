@@ -117,7 +117,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Pay invoice\",\n  \"deadline\": \"2025-11-10T10:00:00.000Z\",\n  \"reminderType\": \"once\",\n  \"reminderOffset\": \"1d\"\n}"
+              "raw": "{\n  \"name\": \"Pay invoice\",\n  \"deadline\": \"2025-11-10T10:00:00.000Z\",\n  \"reminderType\": \"weekly\",\n  \"reminderOffset\": \"1d\",\n  \"endDate\": \"2025-12-10T00:00:00.000Z\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/tasks",
@@ -149,7 +149,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Pay invoice (updated)\",\n  \"reminderType\": \"weekly\",\n  \"reminderOffset\": \"3d\"\n}"
+              "raw": "{\n  \"name\": \"Pay invoice (updated)\",\n  \"reminderType\": \"weekly\",\n  \"reminderOffset\": \"3d\",\n  \"endDate\": \"2025-12-20T00:00:00.000Z\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/tasks/{{taskId}}",

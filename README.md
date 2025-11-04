@@ -9,6 +9,7 @@ A simple reminder system where users register/login and create tasks with deadli
 - Create, edit, delete tasks
 - Reminder offsets: 3 days, 1 day, or 3 hours before deadline
 - One-time or weekly recurring reminders
+- Weekly recurring can be bounded by an `endDate` (required for weekly)
 - WhatsApp delivery via Fonnte API
 - Scheduling with Agenda.js backed by MongoDB
 
@@ -59,6 +60,7 @@ Notes:
 - Login: `POST /api/auth/login` { phone, password } → returns JWT
 - Logout: `POST /api/auth/logout` (requires Authorization header)
 - Tasks CRUD under `/api/tasks` (Authorization: `Bearer <token>`)
+  - Weekly tasks require `endDate` (ISO date) where recurrence stops once the next schedule would exceed `endDate`.
 
 ## Fonnte
 - Ensure `FONNTE_TOKEN` is set in `server/.env`.

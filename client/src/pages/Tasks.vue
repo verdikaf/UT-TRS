@@ -9,6 +9,7 @@
           <option value="once">One-time</option>
           <option value="weekly">Weekly recurring</option>
         </select>
+        <input v-if="form.reminderType==='weekly'" type="date" v-model="form.endDate" placeholder="Recurring end date" />
         <select v-model="form.reminderOffset">
           <option value="3d">3 days before</option>
           <option value="1d">1 day before</option>
@@ -26,6 +27,7 @@
           <div><strong>{{ t.name }}</strong></div>
           <div>Deadline: {{ formatDate(t.deadline) }}</div>
           <div>Type: {{ t.reminderType }} | Offset: {{ t.reminderOffset }} | Status: {{ t.status }}</div>
+          <div v-if="t.reminderType==='weekly'">End: {{ t.endDate ? formatDate(t.endDate) : '-' }}</div>
         </div>
         <button @click="editTask(t)">Edit</button>
         <button @click="removeTask(t)">Delete</button>
@@ -41,6 +43,7 @@
           <option value="once">One-time</option>
           <option value="weekly">Weekly recurring</option>
         </select>
+        <input v-if="editForm.reminderType==='weekly'" type="date" v-model="editForm.endDate" placeholder="Recurring end date" />
         <select v-model="editForm.reminderOffset">
           <option value="3d">3 days before</option>
           <option value="1d">1 day before</option>
@@ -69,12 +72,12 @@ http.interceptors.request.use(config => {
   return config
 })
 
-const form = ref({ name: '', deadline: '', reminderType: 'once', reminderOffset: '3d' })
+const form = ref({ name: '', deadline: '', reminderType: 'once', reminderOffset: '3d', endDate: '' })
 const error = ref('')
 const tasks = ref([])
 
 const editing = ref(false)
-const editForm = ref({ _id: '', name: '', deadline: '', reminderType: 'once', reminderOffset: '3d', status: 'pending' })
+const editForm = ref({ _id: '', name: '', deadline: '', reminderType: 'once', reminderOffset: '3d', status: 'pending', endDate: '' })
 
 function formatDate(d){ return new Date(d).toLocaleString() }
 
@@ -86,22 +89,22 @@ async function load(){
 async function createTask(){
   error.value = ''
   try{
-    const payload = { ...form.value, deadline: new Date(form.value.deadline).toISOString() }
+    const payload = { ...form.value, deadline: new Date(form.value.deadline).toISOString(), endDate: form.value.endDate ? new Date(form.value.endDate).toISOString() : undefined }
     await http.post('/api/tasks', payload)
-    form.value = { name: '', deadline: '', reminderType: 'once', reminderOffset: '3d' }
+    form.value = { name: '', deadline: '', reminderType: 'once', reminderOffset: '3d', endDate: '' }
     await load()
   }catch(e){ error.value = e?.response?.data?.error || 'Failed to create' }
 }
 
 function editTask(t){
   editing.value = true
-  editForm.value = { ...t, deadline: new Date(t.deadline).toISOString().slice(0,16) }
+  editForm.value = { ...t, deadline: new Date(t.deadline).toISOString().slice(0,16), endDate: t.endDate ? new Date(t.endDate).toISOString().slice(0,10) : '' }
 }
 
 async function updateTask(){
   try{
     const id = editForm.value._id
-    const payload = { ...editForm.value, deadline: new Date(editForm.value.deadline).toISOString() }
+    const payload = { ...editForm.value, deadline: new Date(editForm.value.deadline).toISOString(), endDate: editForm.value.endDate ? new Date(editForm.value.endDate).toISOString() : null }
     await http.put(`/api/tasks/${id}`, payload)
     editing.value = false
     await load()
