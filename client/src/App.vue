@@ -5,6 +5,8 @@
       <nav>
         <a v-if="!token" href="/login">Login</a>
         <a v-if="!token" href="/register">Register</a>
+        <a v-if="token" href="/tasks">Tasks</a>
+        <a v-if="token" href="/profile">Profile</a>
         <button v-if="token" @click="logout">Logout</button>
       </nav>
     </header>

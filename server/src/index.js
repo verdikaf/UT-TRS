@@ -5,6 +5,7 @@ import { connectDB } from './config/db.js';
 import { agenda, initAgenda } from './config/agenda.js';
 import authRoutes from './routes/auth.js';
 import taskRoutes from './routes/tasks.js';
+import profileRoutes from './routes/profile.js';
 
 const app = express();
 
@@ -20,6 +21,7 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
+app.use('/api/profile', profileRoutes);
 
 async function start() {
   await connectDB();

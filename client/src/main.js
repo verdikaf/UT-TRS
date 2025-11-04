@@ -4,12 +4,14 @@ import App from './App.vue'
 import Login from './pages/Login.vue'
 import Register from './pages/Register.vue'
 import Tasks from './pages/Tasks.vue'
+import Profile from './pages/Profile.vue'
 
 const routes = [
   { path: '/', redirect: '/tasks' },
   { path: '/login', component: Login },
   { path: '/register', component: Register },
   { path: '/tasks', component: Tasks },
+  { path: '/profile', component: Profile },
 ]
 
 const router = createRouter({ history: createWebHistory(), routes })

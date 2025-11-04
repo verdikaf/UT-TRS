@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { User } from '../models/User.js';
 import { auth, signToken } from '../middleware/auth.js';
 import { Session } from '../models/Session.js';
+import { isValidPhone, isStrongPassword } from '../utils/validators.js';
 
 const router = Router();
 
@@ -12,10 +13,17 @@ router.post('/register', async (req, res) => {
     if (!name || !phone || !password) {
       return res.status(400).json({ error: 'Missing fields' });
     }
-    const existing = await User.findOne({ phone });
+    const phoneTrim = String(phone).trim();
+    if (!isValidPhone(phoneTrim)) {
+      return res.status(400).json({ error: 'Invalid phone format' });
+    }
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    }
+    const existing = await User.findOne({ phone: phoneTrim });
     if (existing) return res.status(409).json({ error: 'Phone already registered' });
     const passwordHash = await bcrypt.hash(password, 10);
-    const user = await User.create({ name, phone, passwordHash });
+    const user = await User.create({ name, phone: phoneTrim, passwordHash });
     const token = signToken(user);
     res.json({ token, user: { id: user._id, name: user.name, phone: user.phone } });
   } catch (e) {
