@@ -20,18 +20,18 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { name, deadline, reminderType, reminderOffset, endDate } = req.body;
-    if (!name || !deadline || !reminderOffset) return res.status(400).json({ error: 'Missing fields' });
+    if (!name || !deadline || !reminderOffset) return res.status(400).json({ error: 'Data wajib belum lengkap' });
 
     const deadlineDate = new Date(deadline);
     let endDateVal = undefined;
     if (reminderType === 'weekly') {
-      if (!endDate) return res.status(400).json({ error: 'endDate is required for weekly recurring tasks' });
+      if (!endDate) return res.status(400).json({ error: 'Tanggal akhir (endDate) wajib diisi untuk pengingat mingguan' });
       endDateVal = new Date(endDate);
       if (!(endDateVal instanceof Date) || isNaN(+endDateVal)) {
-        return res.status(400).json({ error: 'Invalid endDate' });
+        return res.status(400).json({ error: 'Tanggal akhir tidak valid' });
       }
       if (endDateVal < deadlineDate) {
-        return res.status(400).json({ error: 'endDate must be on or after the start deadline' });
+        return res.status(400).json({ error: 'Tanggal akhir harus sama atau setelah tanggal mulai' });
       }
     }
 
@@ -41,11 +41,11 @@ router.post('/', async (req, res) => {
       const now = new Date();
       if (now >= sendAtCheck) {
         return res.status(400).json({
-          error: 'Selected reminder time has already passed for this deadline. Adjust the deadline or choose a different reminder offset.'
+          error: 'Waktu pengingat yang dipilih sudah lewat untuk tenggat ini. Sesuaikan tenggat atau pilih offset pengingat yang berbeda.'
         });
       }
     } catch (err) {
-      return res.status(400).json({ error: 'Invalid reminderOffset' });
+      return res.status(400).json({ error: 'Offset pengingat tidak valid' });
     }
     const task = await Task.create({
       user: req.user.id,
@@ -62,7 +62,7 @@ router.post('/', async (req, res) => {
     }
 
     if (!sendAt) {
-      return res.status(400).json({ error: 'No valid future reminder occurs before endDate' });
+      return res.status(400).json({ error: 'Tidak ada pengingat di masa depan sebelum tanggal akhir' });
     }
 
     const job = await agenda.schedule(sendAt, JOB_NAME, { taskId: task._id.toString() });
@@ -72,7 +72,7 @@ router.post('/', async (req, res) => {
     res.status(201).json(task);
   } catch (e) {
     console.error(e);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: 'Terjadi kesalahan pada server' });
   }
 });
 
@@ -81,7 +81,7 @@ router.put('/:id', async (req, res) => {
     const { id } = req.params;
     const { name, deadline, reminderType, reminderOffset, status, endDate } = req.body;
     const task = await Task.findOne({ _id: id, user: req.user.id });
-    if (!task) return res.status(404).json({ error: 'Not found' });
+    if (!task) return res.status(404).json({ error: 'Data tidak ditemukan' });
 
     if (name !== undefined) task.name = name;
     if (deadline !== undefined) task.deadline = new Date(deadline);
@@ -90,15 +90,15 @@ router.put('/:id', async (req, res) => {
     if (status !== undefined) {
       // Prevent resuming once stopped/completed
       if (task.status !== 'pending' && status === 'pending') {
-        return res.status(400).json({ error: 'Task cannot be resumed once stopped or completed' });
+        return res.status(400).json({ error: 'Tugas tidak dapat dilanjutkan setelah dihentikan atau selesai' });
       }
       task.status = status;
     }
     if (endDate !== undefined) task.endDate = endDate ? new Date(endDate) : undefined;
 
     if (task.reminderType === 'weekly') {
-      if (!task.endDate) return res.status(400).json({ error: 'endDate is required for weekly recurring tasks' });
-      if (task.endDate < task.deadline) return res.status(400).json({ error: 'endDate must be on or after the start deadline' });
+      if (!task.endDate) return res.status(400).json({ error: 'Tanggal akhir (endDate) wajib diisi untuk pengingat mingguan' });
+      if (task.endDate < task.deadline) return res.status(400).json({ error: 'Tanggal akhir harus sama atau setelah tanggal mulai' });
     }
 
     // Validate reminder time after applying updates
@@ -107,11 +107,11 @@ router.put('/:id', async (req, res) => {
       const now = new Date();
       if (now >= sendAtCheck) {
         return res.status(400).json({
-          error: 'Selected reminder time has already passed for this deadline. Adjust the deadline or choose a different reminder offset.'
+          error: 'Waktu pengingat yang dipilih sudah lewat untuk tenggat ini. Sesuaikan tenggat atau pilih offset pengingat yang berbeda.'
         });
       }
     } catch (err) {
-      return res.status(400).json({ error: 'Invalid reminderOffset' });
+      return res.status(400).json({ error: 'Offset pengingat tidak valid' });
     }
 
     // cancel previous job(s) for this task
@@ -120,7 +120,7 @@ router.put('/:id', async (req, res) => {
     if (task.status === 'pending') {
       const { sendAt, normalizedDeadline } = computeInitialSendTime(task.deadline, task.reminderOffset, task.reminderType, { endDate: task.endDate });
       if (+normalizedDeadline !== +task.deadline) task.deadline = normalizedDeadline;
-      if (!sendAt) return res.status(400).json({ error: 'No valid future reminder occurs before endDate' });
+      if (!sendAt) return res.status(400).json({ error: 'Tidak ada pengingat di masa depan sebelum tanggal akhir' });
       const job = await agenda.schedule(sendAt, JOB_NAME, { taskId: task._id.toString() });
       task.jobId = job?.attrs?._id?.toString();
     } else {
@@ -131,7 +131,7 @@ router.put('/:id', async (req, res) => {
     res.json(task);
   } catch (e) {
     console.error(e);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: 'Terjadi kesalahan pada server' });
   }
 });
 
@@ -139,7 +139,7 @@ router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const task = await Task.findOne({ _id: id, user: req.user.id });
-    if (!task) return res.status(404).json({ error: 'Not found' });
+    if (!task) return res.status(404).json({ error: 'Data tidak ditemukan' });
 
     try { await agenda.cancel({ name: JOB_NAME, 'data.taskId': task._id.toString() }); } catch {}
 
@@ -147,7 +147,7 @@ router.delete('/:id', async (req, res) => {
     res.json({ ok: true });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: 'Terjadi kesalahan pada server' });
   }
 });
 
@@ -158,8 +158,8 @@ router.post('/:id/stop', async (req, res) => {
   try {
     const { id } = req.params;
     const task = await Task.findOne({ _id: id, user: req.user.id });
-    if (!task) return res.status(404).json({ error: 'Not found' });
-    if (task.status !== 'pending') return res.status(400).json({ error: 'Task already completed or stopped' });
+    if (!task) return res.status(404).json({ error: 'Data tidak ditemukan' });
+    if (task.status !== 'pending') return res.status(400).json({ error: 'Tugas sudah selesai atau dihentikan' });
 
     try { await agenda.cancel({ name: JOB_NAME, 'data.taskId': task._id.toString() }); } catch {}
     task.status = 'stopped';
@@ -168,6 +168,6 @@ router.post('/:id/stop', async (req, res) => {
     res.json({ ok: true, task });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: 'Terjadi kesalahan pada server' });
   }
 });

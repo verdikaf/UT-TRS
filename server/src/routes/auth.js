@@ -11,40 +11,40 @@ router.post('/register', async (req, res) => {
   try {
     const { name, phone, password } = req.body;
     if (!name || !phone || !password) {
-      return res.status(400).json({ error: 'Missing fields' });
+      return res.status(400).json({ error: 'Data wajib belum lengkap' });
     }
     const phoneTrim = String(phone).trim();
     if (!isValidPhone(phoneTrim)) {
-      return res.status(400).json({ error: 'Invalid phone format' });
+      return res.status(400).json({ error: 'Format nomor telepon tidak valid' });
     }
     if (!isStrongPassword(password)) {
-      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+      return res.status(400).json({ error: 'Kata sandi minimal 8 karakter' });
     }
     const existing = await User.findOne({ phone: phoneTrim });
-    if (existing) return res.status(409).json({ error: 'Phone already registered' });
+    if (existing) return res.status(409).json({ error: 'Nomor telepon sudah terdaftar' });
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await User.create({ name, phone: phoneTrim, passwordHash });
     const token = signToken(user);
     res.json({ token, user: { id: user._id, name: user.name, phone: user.phone } });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: 'Terjadi kesalahan pada server' });
   }
 });
 
 router.post('/login', async (req, res) => {
   try {
     const { phone, password } = req.body;
-    if (!phone || !password) return res.status(400).json({ error: 'Missing fields' });
+    if (!phone || !password) return res.status(400).json({ error: 'Data wajib belum lengkap' });
     const user = await User.findOne({ phone });
-    if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+    if (!user) return res.status(401).json({ error: 'Nomor telepon atau kata sandi salah' });
     const ok = await bcrypt.compare(password, user.passwordHash);
-    if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
+    if (!ok) return res.status(401).json({ error: 'Nomor telepon atau kata sandi salah' });
     const token = signToken(user);
     res.json({ token, user: { id: user._id, name: user.name, phone: user.phone } });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: 'Terjadi kesalahan pada server' });
   }
 });
 

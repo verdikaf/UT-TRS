@@ -1,13 +1,13 @@
 <template>
   <div class="container">
     <header class="header">
-      <h1>Reminder App</h1>
+      <h1>Aplikasi Pengingat</h1>
       <nav>
-        <a v-if="!token" href="/login">Login</a>
-        <a v-if="!token" href="/register">Register</a>
-        <a v-if="token" href="/tasks">Tasks</a>
-        <a v-if="token" href="/profile">Profile</a>
-        <button v-if="token" @click="logout">Logout</button>
+        <a v-if="!token" href="/login">Masuk</a>
+        <a v-if="!token" href="/register">Daftar</a>
+        <a v-if="token" href="/tasks">Tugas</a>
+        <a v-if="token" href="/profile">Profil</a>
+        <button v-if="token" @click="logout">Keluar</button>
       </nav>
     </header>
     <router-view />

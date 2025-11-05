@@ -1,10 +1,10 @@
 <template>
   <div class="card">
-    <h2>Login</h2>
+    <h2>Masuk</h2>
     <div class="row">
-      <input v-model="phone" placeholder="Phone e.g. 628123456789" />
-      <input type="password" v-model="password" placeholder="Password" />
-      <button @click="login">Login</button>
+      <input v-model="phone" placeholder="Nomor telepon, contoh 628123456789" />
+      <input type="password" v-model="password" placeholder="Kata sandi" />
+      <button @click="login">Masuk</button>
     </div>
     <p v-if="error" style="color:red">{{ error }}</p>
   </div>
@@ -26,7 +26,7 @@ async function login() {
     localStorage.setItem('token', data.token)
     window.location.href = '/tasks'
   } catch (e) {
-    error.value = e?.response?.data?.error || 'Login failed'
+    error.value = e?.response?.data?.error || 'Gagal masuk'
   }
 }
 </script>
