@@ -1,57 +1,57 @@
 <template>
   <div>
     <div class="card">
-      <h2>Create Task</h2>
+      <h2>Buat Tugas</h2>
       <div class="row">
-        <input v-model="form.name" placeholder="Task name" />
+        <input v-model="form.name" placeholder="Nama tugas" />
         <input type="datetime-local" v-model="form.deadline" />
         <select v-model="form.reminderType">
-          <option value="once">One-time</option>
-          <option value="weekly">Weekly recurring</option>
+          <option value="once">Sekali</option>
+          <option value="weekly">Mingguan berulang</option>
         </select>
-        <input v-if="form.reminderType==='weekly'" type="date" v-model="form.endDate" placeholder="Recurring end date" />
+        <input v-if="form.reminderType==='weekly'" type="date" v-model="form.endDate" placeholder="Tanggal akhir pengulangan" />
         <select v-model="form.reminderOffset">
-          <option value="3d">3 days before</option>
-          <option value="1d">1 day before</option>
-          <option value="3h">3 hours before</option>
+          <option value="3d">3 hari sebelum</option>
+          <option value="1d">1 hari sebelum</option>
+          <option value="3h">3 jam sebelum</option>
         </select>
-        <button @click="createTask">Add</button>
+        <button @click="createTask">Tambah</button>
       </div>
       <p v-if="error" style="color:red">{{ error }}</p>
     </div>
 
     <div class="card">
-      <h2>My Tasks</h2>
+      <h2>Daftar Tugas</h2>
       <div v-for="t in tasks" :key="t._id" class="row" style="align-items:center; border-bottom:1px solid #eee; padding:8px 0;">
         <div style="flex:1">
           <div><strong>{{ t.name }}</strong></div>
-          <div>Deadline: {{ formatDate(t.deadline) }}</div>
-          <div>Type: {{ t.reminderType }} | Offset: {{ t.reminderOffset }} | Status: {{ t.status }}</div>
-          <div v-if="t.reminderType==='weekly'">End: {{ t.endDate ? formatDate(t.endDate) : '-' }}</div>
+          <div>Tenggat: {{ formatDate(t.deadline) }}</div>
+          <div>Tipe: {{ t.reminderType }} | Offset: {{ t.reminderOffset }} | Status: {{ t.status }}</div>
+          <div v-if="t.reminderType==='weekly'">Akhir: {{ t.endDate ? formatDate(t.endDate) : '-' }}</div>
         </div>
-        <button v-if="t.status==='pending'" @click="editTask(t)">Edit</button>
-        <button v-if="t.status==='pending'" @click="stopTask(t)">Stop</button>
-        <button @click="removeTask(t)">Delete</button>
+        <button v-if="t.status==='pending'" @click="editTask(t)">Ubah</button>
+        <button v-if="t.status==='pending'" @click="stopTask(t)">Hentikan</button>
+        <button @click="removeTask(t)">Hapus</button>
       </div>
     </div>
 
     <div v-if="editing" class="card">
-      <h2>Edit Task</h2>
+      <h2>Ubah Tugas</h2>
       <div class="row">
         <input v-model="editForm.name" />
         <input type="datetime-local" v-model="editForm.deadline" />
         <select v-model="editForm.reminderType">
-          <option value="once">One-time</option>
-          <option value="weekly">Weekly recurring</option>
+          <option value="once">Sekali</option>
+          <option value="weekly">Mingguan berulang</option>
         </select>
-        <input v-if="editForm.reminderType==='weekly'" type="date" v-model="editForm.endDate" placeholder="Recurring end date" />
+        <input v-if="editForm.reminderType==='weekly'" type="date" v-model="editForm.endDate" placeholder="Tanggal akhir pengulangan" />
         <select v-model="editForm.reminderOffset">
-          <option value="3d">3 days before</option>
-          <option value="1d">1 day before</option>
-          <option value="3h">3 hours before</option>
+          <option value="3d">3 hari sebelum</option>
+          <option value="1d">1 hari sebelum</option>
+          <option value="3h">3 jam sebelum</option>
         </select>
-        <button @click="updateTask">Save</button>
-        <button @click="cancelEdit">Cancel</button>
+        <button @click="updateTask">Simpan</button>
+        <button @click="cancelEdit">Batal</button>
       </div>
     </div>
   </div>
@@ -68,6 +68,18 @@ http.interceptors.request.use(config => {
   if (t) config.headers.Authorization = `Bearer ${t}`
   return config
 })
+http.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    const status = err?.response?.status
+    if (status === 401) {
+      localStorage.removeItem('token')
+      window.location.href = '/login'
+      return
+    }
+    return Promise.reject(err)
+  }
+)
 
 const form = ref({ name: '', deadline: '', reminderType: 'once', reminderOffset: '3d', endDate: '' })
 const error = ref('')
@@ -106,19 +118,19 @@ async function updateTask(){
     await http.put(`/api/tasks/${id}`, payload)
     editing.value = false
     await load()
-  }catch(e){ alert(e?.response?.data?.error || 'Failed to update') }
+  }catch(e){ alert(e?.response?.data?.error || 'Gagal memperbarui') }
 }
 
 function cancelEdit(){ editing.value = false }
 
 async function removeTask(t){
-  if(!confirm('Delete this task?')) return
+  if(!confirm('Hapus tugas ini?')) return
   await http.delete(`/api/tasks/${t._id}`)
   await load()
 }
 
 async function stopTask(t){
-  if(!confirm('Stop this task? This cannot be resumed.')) return
+  if(!confirm('Hentikan tugas ini? Tindakan ini tidak dapat dibatalkan.')) return
   await http.post(`/api/tasks/${t._id}/stop`)
   await load()
 }

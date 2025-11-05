@@ -1,11 +1,11 @@
 <template>
   <div class="card">
-    <h2>Register</h2>
+    <h2>Daftar</h2>
     <div class="row">
-      <input v-model="name" placeholder="Full Name" />
-      <input v-model="phone" placeholder="Phone e.g. 628123456789" />
-      <input type="password" v-model="password" placeholder="Password" />
-      <button @click="register">Create Account</button>
+      <input v-model="name" placeholder="Nama lengkap" />
+      <input v-model="phone" placeholder="Nomor telepon, contoh 628123456789" />
+      <input type="password" v-model="password" placeholder="Kata sandi" />
+      <button @click="register">Buat Akun</button>
     </div>
     <p v-if="error" style="color:red">{{ error }}</p>
   </div>
@@ -24,11 +24,14 @@ const error = ref('')
 async function register() {
   error.value = ''
   try {
+    // 1) Validate phone can receive WhatsApp
+    await axios.post(`${API}/api/phone/validate`, { phone: phone.value, name: name.value })
+    // 2) Proceed with registration
     const { data } = await axios.post(`${API}/api/auth/register`, { name: name.value, phone: phone.value, password: password.value })
     localStorage.setItem('token', data.token)
     window.location.href = '/tasks'
   } catch (e) {
-    error.value = e?.response?.data?.error || 'Register failed'
+    error.value = e?.response?.data?.error || 'Gagal mendaftar'
   }
 }
 </script>

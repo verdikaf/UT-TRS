@@ -16,8 +16,19 @@ export function registerReminderJob(agenda) {
     const user = await User.findById(task.user);
     if (!user) return;
 
-    const deadlineStr = new Date(task.deadline).toLocaleString();
-    const message = `Reminder: ${task.name}\nDeadline: ${deadlineStr}`;
+    const tz = process.env.TIMEZONE || 'Asia/Jakarta';
+    const deadline = new Date(task.deadline);
+    const deadlineStr = deadline.toLocaleString('id-ID', {
+      timeZone: tz,
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    const name = user?.name ? user.name : 'Teman';
+    const message = `Halo ${name} 👋\nReminder aja nih, tugas kamu ‘${task.name}’ deadline-nya ${deadlineStr} ya.\nSemoga lancar! ✨`;
 
     try {
       await sendWhatsAppMessage({ phone: user.phone, message });
