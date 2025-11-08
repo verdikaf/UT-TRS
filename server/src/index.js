@@ -67,6 +67,15 @@ async function start() {
     }
     process.exit(1);
   });
+
+  server.on('error', (err) => {
+    if (err && err.code === 'EADDRINUSE') {
+      console.error(`Port ${PORT} is already in use. Choose another port by setting PORT in .env or stop the process using this port.`);
+    } else {
+      console.error('Server error:', err);
+    }
+    process.exit(1);
+  });
 }
 
 start().catch((err) => {
