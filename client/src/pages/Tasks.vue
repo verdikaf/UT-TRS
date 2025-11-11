@@ -34,7 +34,9 @@ const showEditModal = ref(false);
 const editingTask = ref(null);
 const form = ref({
   name: "",
-  deadline: "",
+  // use separate date & time fields for broad browser support
+  deadlineDatePart: "",
+  deadlineTimePart: "",
   reminderType: "once",
   reminderOffset: "3d",
   endDate: "",
@@ -85,31 +87,59 @@ const loadTasks = async () => {
 };
 
 const filteredTasks = computed(() => {
-  if (statusFilter.value === "pending")
-    return tasks.value.filter((t) => t.status === "pending");
-  if (statusFilter.value === "complete")
-    return tasks.value.filter((t) => t.status === "completed");
+  const sf = statusFilter.value;
+  if (sf === "pending") {
+    return tasks.value.filter((t) => t.status?.toLowerCase() === "pending");
+  }
+  if (sf === "complete") {
+    return tasks.value.filter((t) => t.status?.toLowerCase() === "completed");
+  }
   return tasks.value;
 });
 
+const buildIsoFromParts = (datePart, timePart) => {
+  if (!datePart || !timePart) return "";
+  // Parse datePart (YYYY-MM-DD) and timePart (HH:mm)
+  const [year, month, day] = datePart.split("-").map(Number);
+  const [hour, minute] = timePart.split(":").map(Number);
+  // month is 0-based in JS Date
+  const dt = new Date(year, month - 1, day, hour, minute);
+  if (isNaN(+dt)) return "";
+  return dt.toISOString();
+};
+
 const createTask = async () => {
   error.value = "";
-  if (!form.value.name || !form.value.deadline) {
+  if (
+    !form.value.name ||
+    !form.value.deadlineDatePart ||
+    !form.value.deadlineTimePart
+  ) {
     error.value = "Task name and deadline are required";
     return;
   }
   try {
     const payload = {
-      ...form.value,
-      deadline: new Date(form.value.deadline).toISOString(),
+      name: form.value.name,
+      deadline: buildIsoFromParts(
+        form.value.deadlineDatePart,
+        form.value.deadlineTimePart
+      ),
+      reminderType: form.value.reminderType,
+      reminderOffset: form.value.reminderOffset,
       endDate: form.value.endDate
         ? new Date(form.value.endDate).toISOString()
         : undefined,
     };
+    if (!payload.deadline) {
+      error.value = "Please select a valid date and time";
+      return;
+    }
     await http.post("/api/tasks", payload);
     form.value = {
       name: "",
-      deadline: "",
+      deadlineDatePart: "",
+      deadlineTimePart: "",
       reminderType: "once",
       reminderOffset: "3d",
       endDate: "",
@@ -124,11 +154,14 @@ const createTask = async () => {
 const openEdit = (task) => {
   error.value = "";
   editingTask.value = task;
+  const d = task.deadline ? new Date(task.deadline) : null;
+  const iso = d ? d.toISOString() : "";
+  const datePart = iso ? iso.slice(0, 10) : "";
+  const timePart = iso ? iso.slice(11, 16) : "";
   form.value = {
     name: task.name,
-    deadline: task.deadline
-      ? new Date(task.deadline).toISOString().slice(0, 16)
-      : "",
+    deadlineDatePart: datePart,
+    deadlineTimePart: timePart,
     reminderType: task.reminderType || "once",
     reminderOffset: task.reminderOffset || "3d",
     endDate: task.endDate
@@ -141,26 +174,38 @@ const openEdit = (task) => {
 const updateTask = async () => {
   if (!editingTask.value) return;
   error.value = "";
-  if (!form.value.name || !form.value.deadline) {
+  if (
+    !form.value.name ||
+    !form.value.deadlineDatePart ||
+    !form.value.deadlineTimePart
+  ) {
     error.value = "Task name and deadline are required";
     return;
   }
   try {
     const payload = {
       name: form.value.name,
-      deadline: new Date(form.value.deadline).toISOString(),
+      deadline: buildIsoFromParts(
+        form.value.deadlineDatePart,
+        form.value.deadlineTimePart
+      ),
       reminderType: form.value.reminderType,
       reminderOffset: form.value.reminderOffset,
       endDate: form.value.endDate
         ? new Date(form.value.endDate).toISOString()
         : undefined,
     };
+    if (!payload.deadline) {
+      error.value = "Please select a valid date and time";
+      return;
+    }
     await http.put(`/api/tasks/${editingTask.value._id}`, payload);
     showEditModal.value = false;
     editingTask.value = null;
     form.value = {
       name: "",
-      deadline: "",
+      deadlineDatePart: "",
+      deadlineTimePart: "",
       reminderType: "once",
       reminderOffset: "3d",
       endDate: "",
@@ -516,11 +561,19 @@ onMounted(loadTasks);
             <label class="text-[#333] text-base font-medium leading-6 pb-2"
               >Due Date</label
             >
-            <input
-              v-model="form.deadline"
-              type="datetime-local"
-              class="h-[54px] px-4 py-4 rounded-lg border border-text-gray bg-white text-base placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            />
+            <div class="grid grid-cols-2 gap-3">
+              <input
+                v-model="form.deadlineDatePart"
+                type="date"
+                class="h-[54px] px-4 py-4 rounded-lg border border-text-gray bg-white text-base focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
+              <input
+                v-model="form.deadlineTimePart"
+                type="time"
+                step="60"
+                class="h-[54px] px-4 py-4 rounded-lg border border-text-gray bg-white text-base focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
+            </div>
           </div>
 
           <!-- Remind me -->
@@ -694,11 +747,19 @@ onMounted(loadTasks);
             <label class="text-[#333] text-base font-medium leading-6 pb-2"
               >Due Date</label
             >
-            <input
-              v-model="form.deadline"
-              type="datetime-local"
-              class="h-[54px] px-4 py-4 rounded-lg border border-text-gray bg-white text-base placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            />
+            <div class="grid grid-cols-2 gap-3">
+              <input
+                v-model="form.deadlineDatePart"
+                type="date"
+                class="h-[54px] px-4 py-4 rounded-lg border border-text-gray bg-white text-base focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
+              <input
+                v-model="form.deadlineTimePart"
+                type="time"
+                step="60"
+                class="h-[54px] px-4 py-4 rounded-lg border border-text-gray bg-white text-base focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
+            </div>
           </div>
           <div class="flex flex-col gap-4">
             <label class="text-[#333] text-base font-medium leading-6"
