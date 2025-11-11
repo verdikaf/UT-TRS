@@ -1,9 +1,11 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { User } from "../models/User.js";
 import { auth, signToken } from "../middleware/auth.js";
 import { Session } from "../models/Session.js";
 import { isValidPhone, isStrongPassword } from "../utils/validators.js";
+import { cleanPhoneInput, makePhoneVariants } from "../utils/phone.js";
 import { sendWhatsAppMessage } from "../services/fonnte.js";
 
 const router = Router();
@@ -14,7 +16,7 @@ router.post("/register", async (req, res) => {
     if (!name || !phone || !password) {
       return res.status(400).json({ error: "Required fields are missing" });
     }
-    const phoneTrim = String(phone).trim();
+    const phoneTrim = cleanPhoneInput(phone);
     if (!isValidPhone(phoneTrim)) {
       return res.status(400).json({ error: "Invalid phone number format" });
     }
@@ -46,12 +48,8 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ error: "Required fields are missing" });
 
     // Normalize common user input variants for phone: trim, drop spaces/dashes, try with/without leading +
-    const raw = String(phone).trim().replace(/[\s-]/g, "");
-    const variants = new Set([raw]);
-    if (raw.startsWith("+")) variants.add(raw.slice(1));
-    else variants.add("+" + raw);
-
-    const user = await User.findOne({ phone: { $in: Array.from(variants) } });
+    const variants = makePhoneVariants(phone);
+    const user = await User.findOne({ phone: { $in: variants } });
     if (!user)
       return res
         .status(401)
@@ -80,30 +78,32 @@ router.post("/forgot-password", async (req, res) => {
       return res.status(400).json({ error: "Phone number is required" });
 
     // Normalize input similar to login
-    const raw = String(phone).trim().replace(/[\s-]/g, "");
-    const variants = new Set([raw]);
-    if (raw.startsWith("+")) variants.add(raw.slice(1));
-    else variants.add("+" + raw);
-
-    const user = await User.findOne({ phone: { $in: Array.from(variants) } });
+    const variants = makePhoneVariants(phone);
+    const user = await User.findOne({ phone: { $in: variants } });
     if (!user) return res.status(404).json({ error: "Phone number not found" });
 
     // Generate strong temporary password (10 chars)
     const tempPassword = generateTempPassword(10);
-    const hash = await bcrypt.hash(tempPassword, 10);
-    user.passwordHash = hash;
-    await user.save();
 
-    // Compose WhatsApp message in Bahasa
+    // Compose WhatsApp message in Bahasa (do NOT change password yet)
     const message = `Halo ${user.name}! 🔐\nPermintaan lupa kata sandi berhasil. Kata sandi sementara kamu:\n\n${tempPassword}\n\nSilakan login lalu segera ganti kata sandi di halaman Profil. Jangan bagikan kata sandi ini ke siapapun. Terima kasih 🙌`;
     try {
       await sendWhatsAppMessage({ phone: user.phone, message });
+      // Only after successful send, update password to avoid lockout if send fails
+      const hash = await bcrypt.hash(tempPassword, 10);
+      user.passwordHash = hash;
+      await user.save();
     } catch (e) {
       console.error(
         "Gagal kirim WA reset password:",
         e?.response?.data || e.message
       );
-      // Still return success since password already changed
+      return res
+        .status(502)
+        .json({
+          error:
+            "Failed to send WhatsApp message. Please try again in a moment.",
+        });
     }
     return res.json({
       ok: true,
@@ -119,9 +119,8 @@ function generateTempPassword(length = 10) {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789@$!";
   let out = "";
   for (let i = 0; i < length; i++) {
-    out += chars[Math.floor(Math.random() * chars.length)];
+    out += chars[crypto.randomInt(0, chars.length)];
   }
-  // Ensure minimal strength: length >=8 already; optionally ensure at least one digit & one letter
   if (!/[0-9]/.test(out)) out = out.slice(0, -1) + "7";
   if (!/[A-Za-z]/.test(out)) out = "A" + out.slice(1);
   return out;
