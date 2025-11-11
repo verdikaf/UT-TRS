@@ -6,11 +6,17 @@ let agenda;
 
 export async function initAgenda() {
   if (agenda) return agenda;
-  const mongoConnection = mongoose.connection?.client?.db?.();
+  // Gate Agenda startup by WORKER env var; if set and not '1', skip.
+  const workerFlag = process.env.WORKER;
+  if (workerFlag && workerFlag !== '1') {
+    throw new Error('Agenda worker skipped (WORKER env not 1)');
+  }
   const mongoUri = process.env.MONGODB_URI;
+  const dbName = process.env.MONGODB_DB; // ensure Agenda uses same DB as mongoose
+  if (!mongoUri) throw new Error('MONGODB_URI not set for Agenda');
 
   agenda = new Agenda({
-    db: { address: mongoUri, collection: 'agendaJobs' },
+    db: { address: mongoUri, collection: 'agendaJobs', options: dbName ? { dbName } : {} },
     processEvery: '1 minute',
     maxConcurrency: 10,
     defaultConcurrency: 5,
@@ -20,7 +26,7 @@ export async function initAgenda() {
   registerReminderJob(agenda);
 
   await agenda.start();
-  console.log('Agenda started');
+  console.log(`Agenda started (db: ${dbName || mongoose.connection.name})`);
   return agenda;
 }
 

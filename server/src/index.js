@@ -29,8 +29,17 @@ async function start() {
   await connectDB();
   await initAgenda();
 
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`API running on http://localhost:${PORT}`);
+  });
+
+  server.on('error', (err) => {
+    if (err && err.code === 'EADDRINUSE') {
+      console.error(`Port ${PORT} is already in use. Choose another port by setting PORT in .env or stop the process using this port.`);
+    } else {
+      console.error('Server error:', err);
+    }
+    process.exit(1);
   });
 }
 
@@ -42,7 +51,7 @@ start().catch((err) => {
 // Graceful shutdown
 process.on('SIGINT', async () => {
   try {
-    await agenda.stop();
+    if (agenda) await agenda.stop();
   } catch (e) {}
   process.exit(0);
 });
