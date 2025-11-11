@@ -1,5 +1,6 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { User } from "../models/User.js";
 import { auth, signToken } from "../middleware/auth.js";
 import { Session } from "../models/Session.js";
@@ -119,7 +120,7 @@ function generateTempPassword(length = 10) {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789@$!";
   let out = "";
   for (let i = 0; i < length; i++) {
-    out += chars[Math.floor(Math.random() * chars.length)];
+    out += chars[crypto.randomInt(0, chars.length)];
   }
   // Ensure minimal strength: length >=8 already; optionally ensure at least one digit & one letter
   if (!/[0-9]/.test(out)) out = out.slice(0, -1) + "7";
