@@ -119,8 +119,7 @@ function generateTempPassword(length = 10) {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789@$!";
   let out = "";
   for (let i = 0; i < length; i++) {
-    const idx = crypto.randomInt(0, chars.length);
-    out += chars[idx];
+    out += chars[crypto.randomInt(0, chars.length)];
   }
   if (!/[0-9]/.test(out)) out = out.slice(0, -1) + "7";
   if (!/[A-Za-z]/.test(out)) out = "A" + out.slice(1);
