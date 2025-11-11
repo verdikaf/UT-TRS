@@ -99,7 +99,11 @@ const filteredTasks = computed(() => {
 
 const buildIsoFromParts = (datePart, timePart) => {
   if (!datePart || !timePart) return "";
-  const dt = new Date(`${datePart}T${timePart}`);
+  // Parse datePart (YYYY-MM-DD) and timePart (HH:mm)
+  const [year, month, day] = datePart.split("-").map(Number);
+  const [hour, minute] = timePart.split(":").map(Number);
+  // month is 0-based in JS Date
+  const dt = new Date(year, month - 1, day, hour, minute);
   if (isNaN(+dt)) return "";
   return dt.toISOString();
 };
