@@ -51,7 +51,7 @@ start().catch((err) => {
 // Graceful shutdown
 process.on('SIGINT', async () => {
   try {
-    await agenda.stop();
+    if (agenda) await agenda.stop();
   } catch (e) {}
   process.exit(0);
 });

@@ -6,6 +6,12 @@ let agenda;
 
 export async function initAgenda() {
   if (agenda) return agenda;
+  // Gate Agenda startup by WORKER env var; if set and not '1', skip.
+  const workerFlag = process.env.WORKER;
+  if (workerFlag && workerFlag !== '1') {
+    console.log('Agenda worker skipped (WORKER env not 1)');
+    return null;
+  }
   const mongoUri = process.env.MONGODB_URI;
   const dbName = process.env.MONGODB_DB; // ensure Agenda uses same DB as mongoose
   if (!mongoUri) throw new Error('MONGODB_URI not set for Agenda');
