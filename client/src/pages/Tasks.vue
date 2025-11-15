@@ -100,12 +100,10 @@ const filteredTasks = computed(() => {
 const buildIsoFromParts = (datePart, timePart) => {
   if (!datePart || !timePart) return "";
   // Parse datePart (YYYY-MM-DD) and timePart (HH:mm)
-  const [year, month, day] = datePart.split("-").map(Number);
-  const [hour, minute] = timePart.split(":").map(Number);
-  // month is 0-based in JS Date
-  const dt = new Date(year, month - 1, day, hour, minute);
-  if (isNaN(+dt)) return "";
-  return dt.toISOString();
+  const [year, month, day] = datePart.split("-");
+  const [hour, minute] = timePart.split(":");
+  // Build local ISO string: YYYY-MM-DDTHH:mm:00.000 (no Z)
+  return `${year}-${month}-${day}T${hour}:${minute}:00.000`;
 };
 
 const createTask = async () => {
