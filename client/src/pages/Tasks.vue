@@ -32,6 +32,9 @@ const statusFilter = ref("all");
 const showCreateModal = ref(false);
 const showEditModal = ref(false);
 const editingTask = ref(null);
+
+// All UI time uses Asia/Jakarta (WIB)
+const JAKARTA_TZ = "Asia/Jakarta";
 const form = ref({
   name: "",
   // use separate date & time fields for broad browser support
@@ -44,8 +47,10 @@ const form = ref({
 const error = ref("");
 
 const formatDate = (d) => {
+  if (!d) return "";
   const date = new Date(d);
-  return date.toLocaleDateString("en-US", {
+  return date.toLocaleString("en-US", {
+    timeZone: JAKARTA_TZ,
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -55,8 +60,10 @@ const formatDate = (d) => {
 };
 
 const formatDateShort = (d) => {
+  if (!d) return "";
   const date = new Date(d);
-  return date.toLocaleDateString("en-US", {
+  return date.toLocaleString("en-US", {
+    timeZone: JAKARTA_TZ,
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -68,10 +75,19 @@ const isOverdue = (deadline) => {
   return new Date(deadline) < new Date();
 };
 
+const getJakartaDateString = (d) =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: JAKARTA_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(d));
+
 const isToday = (deadline) => {
-  const today = new Date();
-  const due = new Date(deadline);
-  return today.toDateString() === due.toDateString();
+  if (!deadline) return false;
+  const todayJakarta = getJakartaDateString(new Date());
+  const dueJakarta = getJakartaDateString(deadline);
+  return todayJakarta === dueJakarta;
 };
 
 const loadTasks = async () => {
@@ -99,11 +115,12 @@ const filteredTasks = computed(() => {
 
 const buildIsoFromParts = (datePart, timePart) => {
   if (!datePart || !timePart) return "";
-  // Parse datePart (YYYY-MM-DD) and timePart (HH:mm)
-  const [year, month, day] = datePart.split("-");
-  const [hour, minute] = timePart.split(":");
-  // Build local ISO string: YYYY-MM-DDTHH:mm:00.000 (no Z)
-  return `${year}-${month}-${day}T${hour}:${minute}:00.000`;
+  // Interpret the provided date/time as Asia/Jakarta local time (UTC+7),
+  // and convert to a UTC ISO string for storage/transmission.
+  const [y, m, d] = datePart.split("-").map((x) => parseInt(x, 10));
+  const [hh, mm] = timePart.split(":").map((x) => parseInt(x, 10));
+  const utcMs = Date.UTC(y, (m || 1) - 1, d || 1, (hh || 0) - 7, mm || 0, 0, 0);
+  return new Date(utcMs).toISOString();
 };
 
 const createTask = async () => {
@@ -153,18 +170,37 @@ const openEdit = (task) => {
   error.value = "";
   editingTask.value = task;
   const d = task.deadline ? new Date(task.deadline) : null;
-  const iso = d ? d.toISOString() : "";
-  const datePart = iso ? iso.slice(0, 10) : "";
-  const timePart = iso ? iso.slice(11, 16) : "";
+  // Prefill date/time fields in Asia/Jakarta
+  const dateFmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: JAKARTA_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const timeFmt = new Intl.DateTimeFormat("en-GB", {
+    timeZone: JAKARTA_TZ,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  const datePart = d ? dateFmt.format(d) : "";
+  const timePart = d ? timeFmt.format(d) : "";
+  // Format endDate as date (YYYY-MM-DD) in Asia/Jakarta as well (if present)
+  const endDatePart = task.endDate
+    ? new Intl.DateTimeFormat("en-CA", {
+        timeZone: JAKARTA_TZ,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(new Date(task.endDate))
+    : "";
   form.value = {
     name: task.name,
     deadlineDatePart: datePart,
     deadlineTimePart: timePart,
     reminderType: task.reminderType || "once",
     reminderOffset: task.reminderOffset || "3d",
-    endDate: task.endDate
-      ? new Date(task.endDate).toISOString().slice(0, 10)
-      : "",
+    endDate: endDatePart,
   };
   showEditModal.value = true;
 };
@@ -353,6 +389,49 @@ onMounted(loadTasks);
             </button>
           </div>
 
+          <!-- Status Filter (always visible) -->
+          <div class="flex items-center gap-3 mb-6">
+            <span class="text-sm text-text-secondary">Filter:</span>
+            <div class="flex gap-2">
+              <button
+                type="button"
+                @click="statusFilter = 'all'"
+                :class="
+                  statusFilter === 'all'
+                    ? 'bg-primary-dark text-white'
+                    : 'bg-[#E5E7EB] text-[#333]'
+                "
+                class="px-4 py-2 rounded-lg text-sm font-medium leading-5 hover:bg-opacity-90 focus:outline-none"
+              >
+                All
+              </button>
+              <button
+                type="button"
+                @click="statusFilter = 'pending'"
+                :class="
+                  statusFilter === 'pending'
+                    ? 'bg-primary-dark text-white'
+                    : 'bg-[#E5E7EB] text-[#333]'
+                "
+                class="px-4 py-2 rounded-lg text-sm font-medium leading-5 hover:bg-opacity-90 focus:outline-none"
+              >
+                Pending
+              </button>
+              <button
+                type="button"
+                @click="statusFilter = 'complete'"
+                :class="
+                  statusFilter === 'complete'
+                    ? 'bg-primary-dark text-white'
+                    : 'bg-[#E5E7EB] text-[#333]'
+                "
+                class="px-4 py-2 rounded-lg text-sm font-medium leading-5 hover:bg-opacity-90 focus:outline-none"
+              >
+                Completed
+              </button>
+            </div>
+          </div>
+
           <!-- Tasks List -->
           <div v-if="loading" class="text-center py-12">
             <p class="text-text-secondary">Loading tasks...</p>
@@ -379,11 +458,10 @@ onMounted(loadTasks);
                 />
               </svg>
               <h3 class="text-[#111418] text-xl font-semibold leading-7 mb-2">
-                All tasks completed!
+                You have no pending tasks!
               </h3>
               <p class="text-text-secondary text-base leading-6 mb-6">
-                You have no pending tasks. Click the button below to add a new
-                one.
+                Click the button below to add a new one.
               </p>
               <button
                 @click="showCreateModal = true"
@@ -395,48 +473,6 @@ onMounted(loadTasks);
           </div>
 
           <div v-else class="flex flex-col gap-6">
-            <!-- Status Filter -->
-            <div class="flex items-center gap-3">
-              <span class="text-sm text-text-secondary">Filter:</span>
-              <div class="flex gap-2">
-                <button
-                  type="button"
-                  @click="statusFilter = 'all'"
-                  :class="
-                    statusFilter === 'all'
-                      ? 'bg-primary-dark text-white'
-                      : 'bg-[#E5E7EB] text-[#333]'
-                  "
-                  class="px-4 py-2 rounded-lg text-sm font-medium leading-5 hover:bg-opacity-90 focus:outline-none"
-                >
-                  All
-                </button>
-                <button
-                  type="button"
-                  @click="statusFilter = 'pending'"
-                  :class="
-                    statusFilter === 'pending'
-                      ? 'bg-primary-dark text-white'
-                      : 'bg-[#E5E7EB] text-[#333]'
-                  "
-                  class="px-4 py-2 rounded-lg text-sm font-medium leading-5 hover:bg-opacity-90 focus:outline-none"
-                >
-                  Pending
-                </button>
-                <button
-                  type="button"
-                  @click="statusFilter = 'complete'"
-                  :class="
-                    statusFilter === 'complete'
-                      ? 'bg-primary-dark text-white'
-                      : 'bg-[#E5E7EB] text-[#333]'
-                  "
-                  class="px-4 py-2 rounded-lg text-sm font-medium leading-5 hover:bg-opacity-90 focus:outline-none"
-                >
-                  Completed
-                </button>
-              </div>
-            </div>
             <div
               v-for="task in filteredTasks"
               :key="task._id"
@@ -549,7 +585,7 @@ onMounted(loadTasks);
             <input
               v-model="form.name"
               type="text"
-              placeholder="e.g., Prepare weekly report"
+              placeholder="e.g., Course discussion schedule"
               class="h-[54px] px-4 py-4 rounded-lg border border-text-gray bg-white text-base placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
             />
           </div>
@@ -572,6 +608,11 @@ onMounted(loadTasks);
                 class="h-[54px] px-4 py-4 rounded-lg border border-text-gray bg-white text-base focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
               />
             </div>
+            <p class="text-xs text-text-secondary mt-2">
+              All times are shown and scheduled in WIB (Asia/Jakarta, UTC+7).
+              Reminders are delivered according to WIB, regardless of your
+              device timezone.
+            </p>
           </div>
 
           <!-- Remind me -->
@@ -758,6 +799,11 @@ onMounted(loadTasks);
                 class="h-[54px] px-4 py-4 rounded-lg border border-text-gray bg-white text-base focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
               />
             </div>
+            <p class="text-xs text-text-secondary mt-2">
+              All times are shown and scheduled in WIB (Asia/Jakarta, UTC+7).
+              Reminders are delivered according to WIB, regardless of your
+              device timezone.
+            </p>
           </div>
           <div class="flex flex-col gap-4">
             <label class="text-[#333] text-base font-medium leading-6"
