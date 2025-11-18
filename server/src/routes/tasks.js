@@ -15,7 +15,7 @@ function parseWeeklyEndDate(reminderType, deadlineDate, endDateRaw) {
   if (!endDateRaw)
     return { error: "End date (endDate) is required for weekly reminders" };
   const endDateVal = new Date(endDateRaw);
-  if (!(endDateVal instanceof Date) || isNaN(+endDateVal)) {
+  if (isNaN(+endDateVal)) {
     return { error: "Invalid end date" };
   }
   if (endDateVal < deadlineDate) {
