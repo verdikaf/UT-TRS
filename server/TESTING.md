@@ -5,7 +5,7 @@ This project uses Jest for unit/integration tests and `mongodb-memory-server` fo
 ## Setup
 
 ```powershell
-cd "d:\UT\CAPSTONE PROJECT\UT-TRS\server"
+cd server
 npm install
 ```
 
