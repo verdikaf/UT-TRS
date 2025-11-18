@@ -7,6 +7,7 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 import tasksRouter from "../../src/routes/tasks.js";
 import { User } from "../../src/models/User.js";
 import { Session } from "../../src/models/Session.js";
+import { Task } from "../../src/models/Task.js";
 import { agenda, initAgenda } from "../../src/config/agenda.js";
 
 function buildApp() {
@@ -77,7 +78,6 @@ describe("Tasks routes (integration)", () => {
 
   beforeEach(async () => {
     // Clean up between tests to avoid unique index collisions
-    const { Task } = await import("../../src/models/Task.js");
     await Promise.all([
       User.deleteMany({}),
       Session.deleteMany({}),
@@ -335,7 +335,6 @@ describe("Tasks routes (integration)", () => {
       .expect(201);
 
     // Mark the first as completed directly via model
-    const { Task } = await import("../../src/models/Task.js");
     await Task.updateOne(
       { _id: t1.body._id },
       { $set: { status: "completed" } }
