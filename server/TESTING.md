@@ -29,7 +29,7 @@ npm test
 - Tests live under `tests/` with `unit/` and `integration/` subfolders
 - Shared env setup in `tests/setup/env.js`
 - External services:
-  - Fonnte API mocked via `jest.spyOn()` on `sendWhatsAppMessage`
+  - Fonnte API mocked via `jest.unstable_mockModule()` in `reminder.job.test.js`
   - Agenda used in tasks route test; job tests use a fake agenda object
 - Time handling:
   - Use `jest.useFakeTimers()` + `jest.setSystemTime()` for time-sensitive unit tests
