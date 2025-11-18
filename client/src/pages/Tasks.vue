@@ -47,19 +47,6 @@ const form = ref({
 });
 const error = ref("");
 
-const formatDate = (d) => {
-  if (!d) return "";
-  const date = new Date(d);
-  return date.toLocaleString("en-US", {
-    timeZone: JAKARTA_TZ,
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
-
 const formatDateShort = (d) => {
   if (!d) return "";
   const date = new Date(d);
@@ -120,7 +107,9 @@ const buildIsoFromParts = (datePart, timePart) => {
   // and convert to a UTC ISO string for storage/transmission.
   const [y, m, d] = datePart.split("-").map((x) => parseInt(x, 10));
   const [hh, mm] = timePart.split(":").map((x) => parseInt(x, 10));
-  const utcMs = Date.UTC(y, (m || 1) - 1, d || 1, hh || 0, mm || 0, 0, 0) - 7 * 60 * 60 * 1000;
+  const utcMs =
+    Date.UTC(y, (m || 1) - 1, d || 1, hh || 0, mm || 0, 0, 0) -
+    7 * 60 * 60 * 1000;
   return new Date(utcMs).toISOString();
 };
 

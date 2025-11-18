@@ -1,199 +1,50 @@
 {
   "info": {
     "name": "UT-TRS API",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_postman_id": "b6c3c3f2-2e7e-4c33-9f8f-010b5b2d9e11"
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:4000" },
+    { "key": "token", "value": "" },
+    { "key": "taskId", "value": "" }
+  ],
   "item": [
-    {
-      "name": "Health",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "{{base_url}}/api/health",
-          "host": ["{{base_url}}"],
-          "path": ["api", "health"]
-        }
-      }
-    },
+    { "name": "Health", "request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/api/health", "host": ["{{base_url}}"], "path": ["api","health"] } } },
     {
       "name": "Auth",
       "item": [
-        {
-          "name": "Register",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Demo User\",\n  \"phone\": \"628123456789\",\n  \"password\": \"password123\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/auth/register",
-              "host": ["{{base_url}}"],
-              "path": ["api", "auth", "register"]
-            }
-          }
-        },
-        {
-          "name": "Login",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"phone\": \"628123456789\",\n  \"password\": \"password123\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/auth/login",
-              "host": ["{{base_url}}"],
-              "path": ["api", "auth", "login"]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "let json;",
-                  "try { json = pm.response.json(); } catch(e) {}",
-                  "if (json && json.token) {",
-                  "  pm.environment.set('token', json.token);",
-                  "  pm.test('Token captured', function () { pm.expect(json.token).to.be.a('string'); });",
-                  "} else {",
-                  "  pm.test('Login response has token', function () { pm.expect.fail('No token in response'); });",
-                  "}"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "Logout",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/auth/logout",
-              "host": ["{{base_url}}"],
-              "path": ["api", "auth", "logout"]
-            }
-          }
-        }
+        { "name": "Register", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode":"raw", "raw": "{\n  \"name\": \"Demo User\",\n  \"phone\": \"628123456789\",\n  \"password\": \"password123\"\n}" }, "url": { "raw": "{{base_url}}/api/auth/register", "host":["{{base_url}}"], "path":["api","auth","register"] } } },
+        { "name": "Login", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode":"raw", "raw": "{\n  \"phone\": \"628123456789\",\n  \"password\": \"password123\"\n}" }, "url": { "raw": "{{base_url}}/api/auth/login", "host":["{{base_url}}"], "path":["api","auth","login"] } }, "event": [{"listen":"test","script":{"type":"text/javascript","exec":["let json;","try { json = pm.response.json(); } catch(e) {}","if (json && json.token) { pm.environment.set('token', json.token); pm.test('Token captured', function () { pm.expect(json.token).to.be.a('string'); }); } else { pm.test('Login response has token', function () { pm.expect.fail('No token in response'); }); }"]}}] },
+        { "name": "Forgot Password", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode":"raw", "raw": "{\n  \"phone\": \"628123456789\"\n}" }, "url": { "raw": "{{base_url}}/api/auth/forgot-password", "host":["{{base_url}}"], "path":["api","auth","forgot-password"] } } },
+        { "name": "Logout", "request": { "method": "POST", "header": [{"key":"Authorization","value":"Bearer {{token}}"}], "url": { "raw": "{{base_url}}/api/auth/logout", "host":["{{base_url}}"], "path":["api","auth","logout"] } } }
+      ]
+    },
+    {
+      "name": "Profile",
+      "item": [
+        { "name": "Get Me", "request": { "method": "GET", "header": [{"key":"Authorization","value":"Bearer {{token}}"}], "url": { "raw": "{{base_url}}/api/profile/me", "host":["{{base_url}}"], "path":["api","profile","me"] } } },
+        { "name": "Update Info", "request": { "method": "PUT", "header": [{"key":"Authorization","value":"Bearer {{token}}"},{"key":"Content-Type","value":"application/json"}], "body": { "mode":"raw", "raw": "{\n  \"name\": \"Updated Name\",\n  \"phone\": \"628987654321\"\n}" }, "url": { "raw": "{{base_url}}/api/profile/info", "host":["{{base_url}}"], "path":["api","profile","info"] } } },
+        { "name": "Change Password", "request": { "method": "PUT", "header": [{"key":"Authorization","value":"Bearer {{token}}"},{"key":"Content-Type","value":"application/json"}], "body": { "mode":"raw", "raw": "{\n  \"currentPassword\": \"password123\",\n  \"newPassword\": \"newPassword456\"\n}" }, "url": { "raw": "{{base_url}}/api/profile/password", "host":["{{base_url}}"], "path":["api","profile","password"] } } }
+      ]
+    },
+    {
+      "name": "Phone",
+      "item": [
+        { "name": "Validate Phone", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode":"raw", "raw": "{\n  \"phone\": \"628123456789\",\n  \"name\": \"Demo User\"\n}" }, "url": { "raw": "{{base_url}}/api/phone/validate", "host":["{{base_url}}"], "path":["api","phone","validate"] } } }
       ]
     },
     {
       "name": "Tasks",
       "item": [
-        {
-          "name": "List Tasks",
-          "request": {
-            "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/tasks",
-              "host": ["{{base_url}}"],
-              "path": ["api", "tasks"]
-            }
-          }
-        },
-        {
-          "name": "Create Task",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Pay invoice\",\n  \"deadline\": \"2025-11-10T10:00:00.000Z\",\n  \"reminderType\": \"weekly\",\n  \"reminderOffset\": \"1d\",\n  \"endDate\": \"2025-12-10T00:00:00.000Z\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/tasks",
-              "host": ["{{base_url}}"],
-              "path": ["api", "tasks"]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "let json;",
-                  "try { json = pm.response.json(); } catch(e) {}",
-                  "if (json && json._id) { pm.environment.set('taskId', json._id); }"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "Update Task",
-          "request": {
-            "method": "PUT",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Pay invoice (updated)\",\n  \"reminderType\": \"weekly\",\n  \"reminderOffset\": \"3d\",\n  \"endDate\": \"2025-12-20T00:00:00.000Z\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/tasks/{{taskId}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "tasks", "{{taskId}}"]
-            }
-          }
-        },
-        {
-          "name": "Delete Task",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/tasks/{{taskId}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "tasks", "{{taskId}}"]
-            }
-          }
-        }
-        ,
-        {
-          "name": "Stop Task",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/tasks/{{taskId}}/stop",
-              "host": ["{{base_url}}"],
-              "path": ["api", "tasks", "{{taskId}}", "stop"]
-            }
-          }
-        }
+        { "name": "List Tasks (exclude completed)", "request": { "method": "GET", "header": [{"key":"Authorization","value":"Bearer {{token}}"}], "url": { "raw": "{{base_url}}/api/tasks", "host":["{{base_url}}"], "path":["api","tasks"] } } },
+        { "name": "List Tasks (include completed)", "request": { "method": "GET", "header": [{"key":"Authorization","value":"Bearer {{token}}"}], "url": { "raw": "{{base_url}}/api/tasks?includeCompleted=true", "host":["{{base_url}}"], "path":["api","tasks"], "query":[{"key":"includeCompleted","value":"true"}] } } },
+        { "name": "Create Task (once)", "request": { "method": "POST", "header": [{"key":"Authorization","value":"Bearer {{token}}"},{"key":"Content-Type","value":"application/json"}], "body": { "mode":"raw", "raw": "{\n  \"name\": \"Pay invoice\",\n  \"deadline\": \"2025-12-01T10:00:00.000Z\",\n  \"reminderType\": \"once\",\n  \"reminderOffset\": \"1d\"\n}" }, "url": { "raw": "{{base_url}}/api/tasks", "host":["{{base_url}}"], "path":["api","tasks"] } }, "event":[{"listen":"test","script":{"type":"text/javascript","exec":["let j; try{j=pm.response.json()}catch(e){} if(j&&j._id){pm.environment.set('taskId', j._id);} "]}}] },
+        { "name": "Create Task (weekly)", "request": { "method": "POST", "header": [{"key":"Authorization","value":"Bearer {{token}}"},{"key":"Content-Type","value":"application/json"}], "body": { "mode":"raw", "raw": "{\n  \"name\": \"Weekly Review\",\n  \"deadline\": \"2025-12-01T10:00:00.000Z\",\n  \"reminderType\": \"weekly\",\n  \"reminderOffset\": \"3d\",\n  \"endDate\": \"2026-01-15T00:00:00.000Z\"\n}" }, "url": { "raw": "{{base_url}}/api/tasks", "host":["{{base_url}}"], "path":["api","tasks"] } }, "event":[{"listen":"test","script":{"type":"text/javascript","exec":["let j; try{j=pm.response.json()}catch(e){} if(j&&j._id){pm.environment.set('taskId', j._id);} "]}}] },
+        { "name": "Update Task (weekly)", "request": { "method": "PUT", "header": [{"key":"Authorization","value":"Bearer {{token}}"},{"key":"Content-Type","value":"application/json"}], "body": { "mode":"raw", "raw": "{\n  \"name\": \"Pay invoice (updated)\",\n  \"reminderType\": \"weekly\",\n  \"reminderOffset\": \"3d\",\n  \"endDate\": \"2025-12-20T00:00:00.000Z\"\n}" }, "url": { "raw": "{{base_url}}/api/tasks/{{taskId}}", "host":["{{base_url}}"], "path":["api","tasks","{{taskId}}"] } } },
+        { "name": "Update Task (offset only)", "request": { "method": "PUT", "header": [{"key":"Authorization","value":"Bearer {{token}}"},{"key":"Content-Type","value":"application/json"}], "body": { "mode":"raw", "raw": "{\n  \"reminderOffset\": \"3h\"\n}" }, "url": { "raw": "{{base_url}}/api/tasks/{{taskId}}", "host":["{{base_url}}"], "path":["api","tasks","{{taskId}}"] } } },
+        { "name": "Stop Task", "request": { "method": "POST", "header": [{"key":"Authorization","value":"Bearer {{token}}"}], "url": { "raw": "{{base_url}}/api/tasks/{{taskId}}/stop", "host":["{{base_url}}"], "path":["api","tasks","{{taskId}}","stop"] } } },
+        { "name": "Delete Task", "request": { "method": "DELETE", "header": [{"key":"Authorization","value":"Bearer {{token}}"}], "url": { "raw": "{{base_url}}/api/tasks/{{taskId}}", "host":["{{base_url}}"], "path":["api","tasks","{{taskId}}"] } } }
       ]
     }
-  ],
-  "event": [],
-  "variable": [
-    { "key": "base_url", "value": "http://localhost:4000" },
-    { "key": "token", "value": "" },
-    { "key": "taskId", "value": "" }
   ]
 }
