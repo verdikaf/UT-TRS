@@ -30,6 +30,10 @@ describe("Reminder job", () => {
     if (mongod) await mongod.stop();
   });
 
+  beforeEach(() => {
+    sendWhatsAppMessageMock.mockClear();
+  });
+
   test("once reminder sends message and completes task", async () => {
     const user = await User.create({
       name: "U",
