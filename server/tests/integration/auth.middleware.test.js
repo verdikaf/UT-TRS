@@ -3,8 +3,6 @@ import request from "supertest";
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import { MongoMemoryServer } from "mongodb-memory-server";
-import { jest } from '@jest/globals';
-
 import { auth } from "../../src/middleware/auth.js";
 import { User } from "../../src/models/User.js";
 import { Session } from "../../src/models/Session.js";
