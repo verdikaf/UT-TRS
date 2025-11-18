@@ -35,7 +35,6 @@ const editingTask = ref(null);
 
 // All UI time uses Asia/Jakarta (WIB)
 const JAKARTA_TZ = "Asia/Jakarta";
-
 const form = ref({
   name: "",
   // use separate date & time fields for broad browser support
@@ -46,19 +45,6 @@ const form = ref({
   endDate: "",
 });
 const error = ref("");
-
-const formatDate = (d) => {
-  if (!d) return "";
-  const date = new Date(d);
-  return date.toLocaleString("en-US", {
-    timeZone: JAKARTA_TZ,
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
 
 const formatDateShort = (d) => {
   if (!d) return "";

@@ -9,6 +9,66 @@ const router = Router();
 
 router.use(auth);
 
+// Helpers to reduce duplicate code across routes
+function parseWeeklyEndDate(reminderType, deadlineDate, endDateRaw) {
+  if (reminderType !== "weekly") return { endDateVal: undefined };
+  if (!endDateRaw)
+    return { error: "End date (endDate) is required for weekly reminders" };
+  const endDateVal = new Date(endDateRaw);
+  if (!(endDateVal instanceof Date) || isNaN(+endDateVal)) {
+    return { error: "Invalid end date" };
+  }
+  if (endDateVal < deadlineDate) {
+    return { error: "End date must be the same as or after the start date" };
+  }
+  return { endDateVal };
+}
+
+function validateReminderTimeFuture(deadlineDate, reminderOffset) {
+  try {
+    const sendAtCheck = new Date(
+      deadlineDate.getTime() - computeOffsetMs(reminderOffset)
+    );
+    const now = new Date();
+    if (now >= sendAtCheck) {
+      return {
+        error:
+          "Reminder time already passed for this deadline. Adjust the deadline or choose a different reminder offset.",
+      };
+    }
+    return {};
+  } catch (e) {
+    return { error: "Invalid reminder offset" };
+  }
+}
+
+async function cancelTaskJobsById(taskId) {
+  try {
+    await agenda.cancel({ name: JOB_NAME, "data.taskId": taskId });
+  } catch {}
+}
+
+function computeSchedule(task) {
+  const { sendAt, normalizedDeadline } = computeInitialSendTime(
+    task.deadline,
+    task.reminderOffset,
+    task.reminderType,
+    { endDate: task.endDate }
+  );
+  return { sendAt, normalizedDeadline };
+}
+
+async function schedulePendingTask(task) {
+  const { sendAt, normalizedDeadline } = computeSchedule(task);
+  if (+normalizedDeadline !== +task.deadline) task.deadline = normalizedDeadline;
+  if (!sendAt) return { error: "No upcoming reminder before end date" };
+  const job = await agenda.schedule(sendAt, JOB_NAME, {
+    taskId: task._id.toString(),
+  });
+  task.jobId = job?.attrs?._id?.toString();
+  return {};
+}
+
 router.get("/", async (req, res) => {
   const includeCompleted = req.query.includeCompleted === "true";
   const query = { user: req.user.id };
@@ -24,41 +84,17 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: "Required fields are missing" });
 
     const deadlineDate = new Date(deadline);
-    let endDateVal = undefined;
-    if (reminderType === "weekly") {
-      if (!endDate)
-        return res
-          .status(400)
-          .json({
-            error: "End date (endDate) is required for weekly reminders",
-          });
-      endDateVal = new Date(endDate);
-      if (!(endDateVal instanceof Date) || isNaN(+endDateVal)) {
-        return res.status(400).json({ error: "Invalid end date" });
-      }
-      if (endDateVal < deadlineDate) {
-        return res
-          .status(400)
-          .json({
-            error: "End date must be the same as or after the start date",
-          });
-      }
-    }
+    const { endDateVal, error: weeklyErr } = parseWeeklyEndDate(
+      reminderType,
+      deadlineDate,
+      endDate
+    );
+    if (weeklyErr) return res.status(400).json({ error: weeklyErr });
 
     // Validate reminder time: now must be before (deadline - offset)
-    try {
-      const sendAtCheck = new Date(
-        deadlineDate.getTime() - computeOffsetMs(reminderOffset)
-      );
-      const now = new Date();
-      if (now >= sendAtCheck) {
-        return res.status(400).json({
-          error:
-            "Reminder time already passed for this deadline. Adjust the deadline or choose a different reminder offset.",
-        });
-      }
-    } catch (err) {
-      return res.status(400).json({ error: "Invalid reminder offset" });
+    {
+      const { error } = validateReminderTimeFuture(deadlineDate, reminderOffset);
+      if (error) return res.status(400).json({ error });
     }
     const task = await Task.create({
       user: req.user.id,
@@ -68,27 +104,10 @@ router.post("/", async (req, res) => {
       reminderOffset,
       endDate: endDateVal,
     });
-
-    const { sendAt, normalizedDeadline } = computeInitialSendTime(
-      deadlineDate,
-      task.reminderOffset,
-      task.reminderType,
-      { endDate: endDateVal }
-    );
-    if (+normalizedDeadline !== +task.deadline) {
-      task.deadline = normalizedDeadline;
+    {
+      const { error } = await schedulePendingTask(task);
+      if (error) return res.status(400).json({ error });
     }
-
-    if (!sendAt) {
-      return res
-        .status(400)
-        .json({ error: "No upcoming reminder before end date" });
-    }
-
-    const job = await agenda.schedule(sendAt, JOB_NAME, {
-      taskId: task._id.toString(),
-    });
-    task.jobId = job?.attrs?._id?.toString();
     await task.save();
 
     res.status(201).json(task);
@@ -133,52 +152,24 @@ router.put("/:id", async (req, res) => {
       if (task.endDate < task.deadline)
         return res
           .status(400)
-          .json({
-            error: "End date must be the same as or after the start date",
-          });
+          .json({ error: "End date must be the same as or after the start date" });
     }
 
     // Validate reminder time after applying updates
-    try {
-      const sendAtCheck = new Date(
-        task.deadline.getTime() - computeOffsetMs(task.reminderOffset)
+    {
+      const { error } = validateReminderTimeFuture(
+        task.deadline,
+        task.reminderOffset
       );
-      const now = new Date();
-      if (now >= sendAtCheck) {
-        return res.status(400).json({
-          error:
-            "Reminder time already passed for this deadline. Adjust the deadline or choose a different reminder offset.",
-        });
-      }
-    } catch (err) {
-      return res.status(400).json({ error: "Invalid reminder offset" });
+      if (error) return res.status(400).json({ error });
     }
 
     // cancel previous job(s) for this task
-    try {
-      await agenda.cancel({
-        name: JOB_NAME,
-        "data.taskId": task._id.toString(),
-      });
-    } catch {}
+    await cancelTaskJobsById(task._id.toString());
 
     if (task.status === "pending") {
-      const { sendAt, normalizedDeadline } = computeInitialSendTime(
-        task.deadline,
-        task.reminderOffset,
-        task.reminderType,
-        { endDate: task.endDate }
-      );
-      if (+normalizedDeadline !== +task.deadline)
-        task.deadline = normalizedDeadline;
-      if (!sendAt)
-        return res
-          .status(400)
-          .json({ error: "No upcoming reminder before end date" });
-      const job = await agenda.schedule(sendAt, JOB_NAME, {
-        taskId: task._id.toString(),
-      });
-      task.jobId = job?.attrs?._id?.toString();
+      const { error } = await schedulePendingTask(task);
+      if (error) return res.status(400).json({ error });
     } else {
       task.jobId = undefined;
     }
@@ -197,12 +188,7 @@ router.delete("/:id", async (req, res) => {
     const task = await Task.findOne({ _id: id, user: req.user.id });
     if (!task) return res.status(404).json({ error: "Task not found" });
 
-    try {
-      await agenda.cancel({
-        name: JOB_NAME,
-        "data.taskId": task._id.toString(),
-      });
-    } catch {}
+    await cancelTaskJobsById(task._id.toString());
 
     await Task.deleteOne({ _id: id });
     res.json({ ok: true });
@@ -225,12 +211,7 @@ router.post("/:id/stop", async (req, res) => {
         .status(400)
         .json({ error: "Task already completed or stopped" });
 
-    try {
-      await agenda.cancel({
-        name: JOB_NAME,
-        "data.taskId": task._id.toString(),
-      });
-    } catch {}
+    await cancelTaskJobsById(task._id.toString());
     task.status = "stopped";
     task.jobId = undefined;
     await task.save();
