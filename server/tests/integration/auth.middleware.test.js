@@ -34,7 +34,7 @@ async function createUserAndSession({
     process.env.JWT_SECRET,
     { expiresIn: "1d" }
   );
-  const lastActivityAt = new Date(Date.now() - idleMinutesAgo * 60 * 1000 - 1);
+  const lastActivityAt = new Date(Date.now() - idleMinutesAgo * 60 * 1000 - 1000);
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
   await Session.create({
     jti,
