@@ -10,6 +10,25 @@ import { sendWhatsAppMessage } from "../services/fonnte.js";
 
 const router = Router();
 
+// Check phone availability without sending WhatsApp (used by clients before validate)
+router.get("/phone-available", async (req, res) => {
+  try {
+    const phone = req.query.phone;
+    if (!phone)
+      return res
+        .status(400)
+        .json({ error: "Phone query parameter is required" });
+    const phoneTrim = cleanPhoneInput(phone);
+    if (!isValidPhone(phoneTrim))
+      return res.status(400).json({ error: "Invalid phone number format" });
+    const existing = await User.findOne({ phone: phoneTrim });
+    return res.json({ available: !existing });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.post("/register", async (req, res) => {
   try {
     const { name, phone, password } = req.body;
@@ -98,12 +117,9 @@ router.post("/forgot-password", async (req, res) => {
         "Gagal kirim WA reset password:",
         e?.response?.data || e.message
       );
-      return res
-        .status(502)
-        .json({
-          error:
-            "Failed to send WhatsApp message. Please try again in a moment.",
-        });
+      return res.status(502).json({
+        error: "Failed to send WhatsApp message. Please try again in a moment.",
+      });
     }
     return res.json({
       ok: true,
