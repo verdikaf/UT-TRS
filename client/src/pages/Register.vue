@@ -12,22 +12,49 @@ const password = ref("");
 const error = ref("");
 const loading = ref(false);
 
+function validateInputs() {
+  const errs = [];
+  const normalized = String(phone.value || "").trim().replace(/[\s-]/g, "");
+  if (!name.value) errs.push("Name is required");
+  if (!normalized) errs.push("Phone is required");
+  if (!password.value) errs.push("Password is required");
+
+  const digits = normalized.replace(/^\+/, "");
+  if (normalized && !/^\d+$/.test(digits)) errs.push("Phone must contain only digits");
+  if (digits && digits.length < 10) errs.push("Phone number is too short");
+  if (password.value && password.value.length < 6) errs.push("Password must be at least 6 characters");
+
+  return { valid: errs.length === 0, errors: errs, normalizedPhone: normalized };
+}
+
 const handleRegister = async () => {
   error.value = "";
-  if (!name.value || !phone.value || !password.value) {
-    error.value = "All fields are required";
+  const { valid, errors, normalizedPhone } = validateInputs();
+  if (!valid) {
+    error.value = errors.join("; ");
     return;
   }
+
   try {
     loading.value = true;
-    const cleanedPhone = phone.value.trim().replace(/[\s-]/g, "");
+    // Check availability first (no WA message)
+    const availResp = await axios.get(`${API}/api/auth/phone-available`, {
+      params: { phone: normalizedPhone },
+    });
+    if (!availResp.data || availResp.data.available === false) {
+      error.value = "Phone number already registered";
+      return;
+    }
+
+    // Phone available — perform validation (sends WA)
     await axios.post(`${API}/api/phone/validate`, {
-      phone: cleanedPhone,
+      phone: normalizedPhone,
       name: name.value,
     });
+
     const { data } = await axios.post(`${API}/api/auth/register`, {
       name: name.value,
-      phone: cleanedPhone,
+      phone: normalizedPhone,
       password: password.value,
     });
     localStorage.setItem("token", data.token);
