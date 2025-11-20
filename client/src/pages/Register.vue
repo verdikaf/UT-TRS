@@ -22,7 +22,7 @@ function validateInputs() {
   const digits = normalized.replace(/^\+/, "");
   if (normalized && !/^\d+$/.test(digits)) errs.push("Phone must contain only digits");
   if (digits && digits.length < 10) errs.push("Phone number is too short");
-  if (password.value && password.value.length < 6) errs.push("Password must be at least 6 characters");
+  if (password.value && password.value.length < 8) errs.push("Password must be at least 8 characters");
 
   return { valid: errs.length === 0, errors: errs, normalizedPhone: normalized };
 }
