@@ -23,7 +23,7 @@ router.get("/phone-available", async (req, res) => {
     if (!isValidPhone(phoneTrim))
       return res.status(400).json({ error: "Invalid phone number format" });
     const existing = await User.findOne({ phone: phoneTrim });
-      logger.debug('phone.available.check', { phone: phoneTrim, available: !existing });
+    logger.debug('phone.available.check', { phone: phoneTrim, available: !existing });
     return res.json({ available: !existing });
   } catch (e) {
     logger.error('phone.available.error', { err: e.message });
