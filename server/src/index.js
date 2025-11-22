@@ -102,15 +102,6 @@ async function start() {
     }
     process.exit(1);
   });
-
-  server.on('error', (err) => {
-    if (err && err.code === 'EADDRINUSE') {
-      logger.error('port.in.use', { port: PORT });
-    } else {
-      logger.error('server.error', { err: err.message });
-    }
-    process.exit(1);
-  });
 }
 
 start().catch((err) => {
