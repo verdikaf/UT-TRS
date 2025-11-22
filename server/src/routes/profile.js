@@ -4,6 +4,7 @@ import { auth, signToken } from "../middleware/auth.js";
 import { User } from "../models/User.js";
 import { Session } from "../models/Session.js";
 import { isValidPhone, isStrongPassword } from "../utils/validators.js";
+import { decryptPasswordBase64 } from "../config/crypto.js";
 
 const router = Router();
 
@@ -64,8 +65,6 @@ router.put("/info", auth, async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
-
-import { decryptPasswordBase64 } from "../config/crypto.js";
 
 router.put("/password", auth, async (req, res) => {
   try {
