@@ -28,18 +28,22 @@ const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
 const rawOrigins = process.env.ALLOWED_ORIGINS || CLIENT_URL;
 const allowedOrigins = rawOrigins
   .split(",")
-  .map((o) => o.trim())
+  .map((o) => o.trim().replace(/\/$/, ""))
   .filter(Boolean);
 
 app.use(
   cors({
     origin: (origin, cb) => {
       if (!origin) return cb(null, true); // curl / health checks
-      if (allowedOrigins.includes(origin)) return cb(null, true);
+      const normalized = origin.replace(/\/$/, "");
+      const match = allowedOrigins.find((o) => o === normalized);
+      logger.debug("cors.origin.check", { origin, normalized, match: !!match });
+      if (match) return cb(null, true);
       logger.warn("cors.block", { origin });
       return cb(new Error("Not allowed by CORS"));
     },
     credentials: true,
+    optionsSuccessStatus: 204,
   })
 );
 app.use(express.json());
@@ -98,7 +102,6 @@ async function start() {
     }
     process.exit(1);
   });
-
 }
 
 start().catch((err) => {
