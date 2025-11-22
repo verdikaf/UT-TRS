@@ -87,6 +87,12 @@ Use `"passwordEncrypted": "{{PASSWORD_ENC}}"` in request body.
 - RSA keypair persisted in `server/keys/` (single static key).
 - To rotate, update server files and redeploy frontend with new `VITE_RSA_PUBLIC_KEY`.
 
+### Setting up VITE_RSA_PUBLIC_KEY for the Client
+1. **Start the server once** to generate the RSA keypair. This will create `server/keys/rsa_public.pem` and `server/keys/rsa_private.pem`.
+2. **Copy the contents** of `server/keys/rsa_public.pem`.
+3. **Open** `client/.env` (create it if it doesn't exist).
+4. **Add** the following line (all on one line, no line breaks):
+
 ## Fonnte
 - Ensure `FONNTE_TOKEN` is set in `server/.env`.
 - Phone numbers should be in international format (e.g., 628xxxxxxxxxx).
