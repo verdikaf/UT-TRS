@@ -6,10 +6,14 @@ import authRouter from '../../src/routes/auth.js';
 import profileRouter from '../../src/routes/profile.js';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { User } from '../../src/models/User.js';
 import { Session } from '../../src/models/Session.js';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 function buildApp() {
   const app = express();
@@ -53,7 +57,7 @@ describe('Encrypted auth flows', () => {
     await mongoose.connect(uri, { dbName: 'ut_trs_test' });
     app = buildApp();
     // read persisted public key directly (static key approach)
-    const keyPath = path.join(process.cwd(), 'server', 'keys', 'rsa_public.pem');
+    const keyPath = path.join(__dirname, '../../keys/rsa_public.pem');
     pubPem = fs.readFileSync(keyPath, 'utf8');
   }, 60000);
 
