@@ -44,7 +44,7 @@ export function decryptPasswordBase64(b64) {
       padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
       oaepHash: 'sha256'
     }, buf);
-    return decrypted.toString();
+    return decrypted.toString('utf8');
   } catch (e) {
     return null;
   }
