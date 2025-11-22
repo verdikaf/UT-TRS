@@ -9,7 +9,6 @@ import profileRoutes from './routes/profile.js';
 import phoneRoutes from './routes/phone.js';
 import clientLogRoutes from './routes/clientLog.js';
 import { logger, attachRequestId } from './utils/logger.js';
-import clientLogRoutes from './routes/clientLog.js';
 
 const app = express();
 attachRequestId(app);
