@@ -36,12 +36,8 @@ app.use(
     origin: (origin, cb) => {
       if (!origin) return cb(null, true); // curl / health checks
       const normalized = origin.replace(/\/$/, "");
-      const match = allowedOrigins.find(
-        (o) => o === normalized || o === origin
-      );
-      if (logger.isDebugEnabled()) {
-        logger.debug("cors.origin.check", { origin, normalized, match: !!match });
-      }
+      const match = allowedOrigins.find((o) => o === normalized);
+      logger.debug("cors.origin.check", { origin, normalized, match: !!match });
       if (match) return cb(null, true);
       logger.warn("cors.block", { origin });
       return cb(new Error("Not allowed by CORS"));
