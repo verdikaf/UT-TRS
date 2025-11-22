@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from "vue";
 import axios from "axios";
+import { encryptPassword } from "../utils/encryption.js";
 import { useRouter } from "vue-router";
 
 const router = useRouter();
@@ -52,10 +53,21 @@ const handleRegister = async () => {
       name: name.value,
     });
 
+    let passwordEncrypted;
+    try {
+      passwordEncrypted = await encryptPassword(password.value);
+    } catch (encErr) {
+      if (encErr?.message?.includes('Missing RSA public key')) {
+        error.value = 'Encryption key missing. Set VITE_RSA_PUBLIC_KEY in client .env and restart dev server.';
+      } else {
+        error.value = encErr.message || 'Password encryption failed';
+      }
+      return;
+    }
     const { data } = await axios.post(`${API}/api/auth/register`, {
       name: name.value,
       phone: normalizedPhone,
-      password: password.value,
+      passwordEncrypted,
     });
     localStorage.setItem("token", data.token);
     router.push("/tasks");
