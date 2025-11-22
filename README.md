@@ -115,7 +115,6 @@ Use `"passwordEncrypted": "{{PASSWORD_ENC}}"` in request body.
 2. **Copy the contents** of `server/src/keys/rsa_public.pem`.
 3. **Open** `client/.env` (create it if it doesn't exist).
 4. **Add** the following line (all on one line, no line breaks):
-
 ## Fonnte
 
 - Ensure `FONNTE_TOKEN` is set in `server/.env`.
