@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import axios from "axios";
+import { encryptPassword } from "../utils/encryption.js";
 import { useRouter } from "vue-router";
 
 const router = useRouter();
@@ -92,10 +93,24 @@ const changePassword = async () => {
     pwdMsgType.value = "error";
     return;
   }
+  if (!currentPassword.value || !newPassword.value) {
+    pwdMsg.value = "Current and new password required";
+    pwdMsgType.value = "error";
+    return;
+  }
+  let currentPasswordEncrypted, newPasswordEncrypted;
+  try {
+    currentPasswordEncrypted = await encryptPassword(currentPassword.value);
+    newPasswordEncrypted = await encryptPassword(newPassword.value);
+  } catch (e) {
+    pwdMsg.value = "Encryption error: " + (e?.message || "Failed to encrypt password. Please try again later.");
+    pwdMsgType.value = "error";
+    return;
+  }
   try {
     const { data } = await http.put("/api/profile/password", {
-      currentPassword: currentPassword.value,
-      newPassword: newPassword.value,
+      currentPasswordEncrypted,
+      newPasswordEncrypted,
     });
     if (data.token) localStorage.setItem("token", data.token);
     currentPassword.value = "";

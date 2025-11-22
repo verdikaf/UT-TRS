@@ -4,6 +4,7 @@ import { auth, signToken } from "../middleware/auth.js";
 import { User } from "../models/User.js";
 import { Session } from "../models/Session.js";
 import { isValidPhone, isStrongPassword } from "../utils/validators.js";
+import { decryptPasswordBase64 } from "../config/crypto.js";
 
 const router = Router();
 
@@ -67,25 +68,27 @@ router.put("/info", auth, async (req, res) => {
 
 router.put("/password", auth, async (req, res) => {
   try {
-    const { currentPassword, newPassword } = req.body;
-    if (!currentPassword || !newPassword)
+    const { currentPasswordEncrypted, newPasswordEncrypted } = req.body;
+    if (!currentPasswordEncrypted || !newPasswordEncrypted) {
       return res.status(400).json({ error: "Required fields are missing" });
-    if (!isStrongPassword(newPassword))
-      return res
-        .status(400)
-        .json({ error: "Password must be at least 8 characters" });
+    }
+    const currentPlain = decryptPasswordBase64(currentPasswordEncrypted);
+    const newPlain = decryptPasswordBase64(newPasswordEncrypted);
+    if (!currentPlain || !newPlain) {
+      return res.status(400).json({ error: "Invalid encrypted password" });
+    }
+    if (!isStrongPassword(newPlain)) {
+      return res.status(400).json({ error: "Password must be at least 8 characters" });
+    }
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ error: "User not found" });
-    const ok = await bcrypt.compare(currentPassword, user.passwordHash);
-    if (!ok)
+    const ok = await bcrypt.compare(currentPlain, user.passwordHash);
+    if (!ok) {
       return res.status(400).json({ error: "Current password is incorrect" });
-    user.passwordHash = await bcrypt.hash(newPassword, 10);
+    }
+    user.passwordHash = await bcrypt.hash(newPlain, 10);
     await user.save();
-
-    await Session.updateMany(
-      { user: req.user.id },
-      { $set: { revoked: true } }
-    );
+    await Session.updateMany({ user: req.user.id }, { $set: { revoked: true } });
     const token = signToken(user);
     return res.json({ token });
   } catch (e) {

@@ -13,8 +13,20 @@
     {
       "name": "Auth",
       "item": [
-        { "name": "Register", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode":"raw", "raw": "{\n  \"name\": \"Demo User\",\n  \"phone\": \"628123456789\",\n  \"password\": \"password123\"\n}" }, "url": { "raw": "{{base_url}}/api/auth/register", "host":["{{base_url}}"], "path":["api","auth","register"] } } },
-        { "name": "Login", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode":"raw", "raw": "{\n  \"phone\": \"628123456789\",\n  \"password\": \"password123\"\n}" }, "url": { "raw": "{{base_url}}/api/auth/login", "host":["{{base_url}}"], "path":["api","auth","login"] } }, "event": [{"listen":"test","script":{"type":"text/javascript","exec":["let json;","try { json = pm.response.json(); } catch(e) {}","if (json && json.token) { pm.environment.set('token', json.token); pm.test('Token captured', function () { pm.expect(json.token).to.be.a('string'); }); } else { pm.test('Login response has token', function () { pm.expect.fail('No token in response'); }); }"]}}] },
+        { "name": "Register (Encrypted)", "event": [ { "listen": "prerequest", "script": { "type": "text/javascript", "exec": [
+          "const pem = pm.environment.get('PUBLIC_KEY_PEM'); if(!pem) { throw new Error('PUBLIC_KEY_PEM env variable missing'); }",
+          "const { publicEncrypt, constants } = require('crypto');",
+          "const pass = pm.environment.get('REGISTER_PASSWORD') || 'password123';",
+          "const enc = publicEncrypt({ key: pem, padding: constants.RSA_PKCS1_OAEP_PADDING, oaepHash: 'sha256' }, Buffer.from(pass,'utf8')).toString('base64');",
+          "pm.environment.set('REGISTER_PASSWORD_ENC', enc);"
+        ] } }], "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode":"raw", "raw": "{\n  \"name\": \"Demo User\",\n  \"phone\": \"628123456789\",\n  \"passwordEncrypted\": \"{{REGISTER_PASSWORD_ENC}}\"\n}" }, "url": { "raw": "{{base_url}}/api/auth/register", "host":["{{base_url}}"], "path":["api","auth","register"] } } },
+        { "name": "Login (Encrypted)", "event": [ { "listen": "prerequest", "script": { "type": "text/javascript", "exec": [
+          "const pem = pm.environment.get('PUBLIC_KEY_PEM'); if(!pem) { throw new Error('PUBLIC_KEY_PEM env variable missing'); }",
+          "const { publicEncrypt, constants } = require('crypto');",
+          "const pass = pm.environment.get('LOGIN_PASSWORD') || 'password123';",
+          "const enc = publicEncrypt({ key: pem, padding: constants.RSA_PKCS1_OAEP_PADDING, oaepHash: 'sha256' }, Buffer.from(pass,'utf8')).toString('base64');",
+          "pm.environment.set('LOGIN_PASSWORD_ENC', enc);"
+        ] } }, {"listen":"test","script":{"type":"text/javascript","exec":["let json; try { json = pm.response.json(); } catch(e) {}","if (json && json.token) { pm.environment.set('token', json.token); pm.test('Token captured', function () { pm.expect(json.token).to.be.a('string'); }); } else { pm.test('Login response has token', function () { pm.expect.fail('No token in response'); }); }"]}}], "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode":"raw", "raw": "{\n  \"phone\": \"628123456789\",\n  \"passwordEncrypted\": \"{{LOGIN_PASSWORD_ENC}}\"\n}" }, "url": { "raw": "{{base_url}}/api/auth/login", "host":["{{base_url}}"], "path":["api","auth","login"] } } },
         { "name": "Forgot Password", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode":"raw", "raw": "{\n  \"phone\": \"628123456789\"\n}" }, "url": { "raw": "{{base_url}}/api/auth/forgot-password", "host":["{{base_url}}"], "path":["api","auth","forgot-password"] } } },
         { "name": "Logout", "request": { "method": "POST", "header": [{"key":"Authorization","value":"Bearer {{token}}"}], "url": { "raw": "{{base_url}}/api/auth/logout", "host":["{{base_url}}"], "path":["api","auth","logout"] } } }
       ]
@@ -24,7 +36,15 @@
       "item": [
         { "name": "Get Me", "request": { "method": "GET", "header": [{"key":"Authorization","value":"Bearer {{token}}"}], "url": { "raw": "{{base_url}}/api/profile/me", "host":["{{base_url}}"], "path":["api","profile","me"] } } },
         { "name": "Update Info", "request": { "method": "PUT", "header": [{"key":"Authorization","value":"Bearer {{token}}"},{"key":"Content-Type","value":"application/json"}], "body": { "mode":"raw", "raw": "{\n  \"name\": \"Updated Name\",\n  \"phone\": \"628987654321\"\n}" }, "url": { "raw": "{{base_url}}/api/profile/info", "host":["{{base_url}}"], "path":["api","profile","info"] } } },
-        { "name": "Change Password", "request": { "method": "PUT", "header": [{"key":"Authorization","value":"Bearer {{token}}"},{"key":"Content-Type","value":"application/json"}], "body": { "mode":"raw", "raw": "{\n  \"currentPassword\": \"password123\",\n  \"newPassword\": \"newPassword456\"\n}" }, "url": { "raw": "{{base_url}}/api/profile/password", "host":["{{base_url}}"], "path":["api","profile","password"] } } }
+        { "name": "Change Password (Encrypted)", "event": [ { "listen": "prerequest", "script": { "type": "text/javascript", "exec": [
+          "const pem = pm.environment.get('PUBLIC_KEY_PEM'); if(!pem) { throw new Error('PUBLIC_KEY_PEM env variable missing'); }",
+          "const { publicEncrypt, constants } = require('crypto');",
+          "const curPass = pm.environment.get('CURRENT_PASSWORD') || 'password123';",
+          "const newPass = pm.environment.get('NEW_PASSWORD') || 'newPassword456';",
+          "const encCur = publicEncrypt({ key: pem, padding: constants.RSA_PKCS1_OAEP_PADDING, oaepHash: 'sha256' }, Buffer.from(curPass,'utf8')).toString('base64');",
+          "const encNew = publicEncrypt({ key: pem, padding: constants.RSA_PKCS1_OAEP_PADDING, oaepHash: 'sha256' }, Buffer.from(newPass,'utf8')).toString('base64');",
+          "pm.environment.set('CURRENT_PASSWORD_ENC', encCur); pm.environment.set('NEW_PASSWORD_ENC', encNew);"
+        ] } } ], "request": { "method": "PUT", "header": [{"key":"Authorization","value":"Bearer {{token}}"},{"key":"Content-Type","value":"application/json"}], "body": { "mode":"raw", "raw": "{\n  \"currentPasswordEncrypted\": \"{{CURRENT_PASSWORD_ENC}}\",\n  \"newPasswordEncrypted\": \"{{NEW_PASSWORD_ENC}}\"\n}" }, "url": { "raw": "{{base_url}}/api/profile/password", "host":["{{base_url}}"], "path":["api","profile","password"] } } }
       ]
     },
     {

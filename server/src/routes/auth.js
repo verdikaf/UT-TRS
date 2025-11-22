@@ -8,6 +8,7 @@ import { isValidPhone, isStrongPassword } from "../utils/validators.js";
 import { cleanPhoneInput, makePhoneVariants } from "../utils/phone.js";
 import { sendWhatsAppMessage } from "../services/fonnte.js";
 import { logger } from "../utils/logger.js";
+import { decryptPasswordBase64 } from "../config/crypto.js";
 
 const router = Router();
 
@@ -31,34 +32,33 @@ router.get("/phone-available", async (req, res) => {
   }
 });
 
+// NOTE: Public key endpoint removed; client now uses a statically provisioned public key.
+
 router.post("/register", async (req, res) => {
   try {
-    const { name, phone, password } = req.body;
-    if (!name || !phone || !password) {
+    const { name, phone, passwordEncrypted } = req.body;
+    if (!name || !phone || !passwordEncrypted) {
       return res.status(400).json({ error: "Required fields are missing" });
     }
     const phoneTrim = cleanPhoneInput(phone);
     if (!isValidPhone(phoneTrim)) {
       return res.status(400).json({ error: "Invalid phone number format" });
     }
-    if (!isStrongPassword(password)) {
-      return res
-        .status(400)
-        .json({ error: "Password must be at least 8 characters" });
+    const decrypted = decryptPasswordBase64(passwordEncrypted);
+    if (!decrypted) return res.status(400).json({ error: 'Invalid encrypted password' });
+    if (!isStrongPassword(decrypted)) {
+      return res.status(400).json({ error: "Password must be at least 8 characters" });
     }
     const existing = await User.findOne({ phone: phoneTrim });
     if (existing) {
       logger.info('register.duplicate.phone', { phone: phoneTrim });
       return res.status(409).json({ error: "Phone number already registered" });
     }
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(decrypted, 10);
     const user = await User.create({ name, phone: phoneTrim, passwordHash });
     const token = signToken(user);
     logger.info('register.success', { userId: user._id.toString(), phone: user.phone });
-    res.json({
-      token,
-      user: { id: user._id, name: user.name, phone: user.phone },
-    });
+    res.json({ token, user: { id: user._id, name: user.name, phone: user.phone } });
   } catch (e) {
     logger.error('register.error', { err: e.message });
     res.status(500).json({ error: "Internal server error" });
@@ -67,28 +67,26 @@ router.post("/register", async (req, res) => {
 
 router.post("/login", async (req, res) => {
   try {
-    const { phone, password } = req.body;
-    if (!phone || !password)
+    const { phone, passwordEncrypted } = req.body;
+    if (!phone || !passwordEncrypted) {
       return res.status(400).json({ error: "Required fields are missing" });
-
-    // Normalize common user input variants for phone: trim, drop spaces/dashes, try with/without leading +
+    }
     const variants = makePhoneVariants(phone);
     const user = await User.findOne({ phone: { $in: variants } });
     if (!user) {
       logger.info('login.fail.user.not.found', { phoneVariants: variants });
       return res.status(401).json({ error: "Incorrect phone number or password" });
     }
-    const ok = await bcrypt.compare(password, user.passwordHash);
+    const decrypted = decryptPasswordBase64(passwordEncrypted);
+    if (!decrypted) return res.status(400).json({ error: 'Invalid encrypted password' });
+    const ok = await bcrypt.compare(decrypted, user.passwordHash);
     if (!ok) {
       logger.info('login.fail.bad.password', { userId: user._id.toString() });
       return res.status(401).json({ error: "Incorrect phone number or password" });
     }
     const token = signToken(user);
     logger.info('login.success', { userId: user._id.toString() });
-    res.json({
-      token,
-      user: { id: user._id, name: user.name, phone: user.phone },
-    });
+    res.json({ token, user: { id: user._id, name: user.name, phone: user.phone } });
   } catch (e) {
     logger.error('login.error', { err: e.message });
     res.status(500).json({ error: "Internal server error" });

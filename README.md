@@ -3,7 +3,7 @@
 A simple reminder system where users register/login and create tasks with deadlines and WhatsApp reminders. Supports one-time and weekly recurring reminders, sent via Fonnte API and scheduled by Agenda.js.
 
 ## Features
-- Register and login with phone + password (JWT)
+- Encrypted register/login/password change (client-side RSA-OAEP, server-side bcrypt storage)
 - Secure logout (server-side revocation)
 - Auto-logout on inactivity (configurable idle timeout)
 - Create, edit, delete tasks
@@ -56,11 +56,42 @@ Notes:
 - Ensure env files are configured as described below.
 
 ## API Notes
-- Registration: `POST /api/auth/register` { name, phone, password }
-- Login: `POST /api/auth/login` { phone, password } → returns JWT
-- Logout: `POST /api/auth/logout` (requires Authorization header)
+- Registration: `POST /api/auth/register` `{ name, phone, passwordEncrypted }`
+- Login: `POST /api/auth/login` `{ phone, passwordEncrypted }` → returns JWT
+- Logout: `POST /api/auth/logout` (Authorization required)
+- Change password: `PUT /api/profile/password` `{ currentPasswordEncrypted, newPasswordEncrypted }`
 - Tasks CRUD under `/api/tasks` (Authorization: `Bearer <token>`)
   - Weekly tasks require `endDate` (ISO date) where recurrence stops once the next schedule would exceed `endDate`.
+
+### Password Encryption Flow (Static Key)
+1. Public RSA key (SPKI PEM) is provisioned at build time (frontend env var `VITE_RSA_PUBLIC_KEY`).
+2. Client imports key using Web Crypto: `subtle.importKey('spki', pemDer, { name: 'RSA-OAEP', hash: 'SHA-256' }, true, ['encrypt'])`.
+3. Password is UTF-8 encoded and encrypted via RSA-OAEP SHA-256.
+4. Ciphertext (Base64) sent as `passwordEncrypted`; plaintext never sent.
+5. Server performs RSA-OAEP decrypt → bcrypt hash/compare/store.
+
+### Postman Encryption Snippet (Static Key)
+Set environment variable `PUBLIC_KEY_PEM` with the RSA public key. Then use:
+```javascript
+const pem = pm.environment.get('PUBLIC_KEY_PEM');
+if(!pem) { throw new Error('PUBLIC_KEY_PEM not set'); }
+const { publicEncrypt, constants } = require('crypto');
+const pwd = pm.environment.get('PASSWORD') || 'password123';
+const enc = publicEncrypt({ key: pem, padding: constants.RSA_PKCS1_OAEP_PADDING, oaepHash: 'sha256' }, Buffer.from(pwd,'utf8')).toString('base64');
+pm.environment.set('PASSWORD_ENC', enc);
+```
+Use `"passwordEncrypted": "{{PASSWORD_ENC}}"` in request body.
+
+### Security Notes
+- Bcrypt cost factor currently `10`; can be raised later without breaking encryption.
+- RSA keypair persisted in `server/keys/` (single static key).
+- To rotate, update server files and redeploy frontend with new `VITE_RSA_PUBLIC_KEY`.
+
+### Setting up VITE_RSA_PUBLIC_KEY for the Client
+1. **Start the server once** to generate the RSA keypair. This will create `server/keys/rsa_public.pem` and `server/keys/rsa_private.pem`.
+2. **Copy the contents** of `server/keys/rsa_public.pem`.
+3. **Open** `client/.env` (create it if it doesn't exist).
+4. **Add** the following line (all on one line, no line breaks):
 
 ## Fonnte
 - Ensure `FONNTE_TOKEN` is set in `server/.env`.
