@@ -106,13 +106,13 @@ Use `"passwordEncrypted": "{{PASSWORD_ENC}}"` in request body.
 ### Security Notes
 
 - Bcrypt cost factor currently `10`; can be raised later without breaking encryption.
-- RSA keypair persisted in `server/keys/` (single static key).
+- RSA keypair persisted in `server/src/keys/` (single static key).
 - To rotate, update server files and redeploy frontend with new `VITE_RSA_PUBLIC_KEY`.
 
 ### Setting up VITE_RSA_PUBLIC_KEY for the Client
 
-1. **Start the server once** to generate the RSA keypair. This will create `server/keys/rsa_public.pem` and `server/keys/rsa_private.pem`.
-2. **Copy the contents** of `server/keys/rsa_public.pem`.
+1. **Start the server once** to generate the RSA keypair. This will create `server/src/keys/rsa_public.pem` and `server/src/keys/rsa_private.pem`.
+2. **Copy the contents** of `server/src/keys/rsa_public.pem`.
 3. **Open** `client/.env` (create it if it doesn't exist).
 4. **Add** the following line (all on one line, no line breaks):
 
