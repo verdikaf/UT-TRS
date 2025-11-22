@@ -103,7 +103,9 @@ const changePassword = async () => {
     currentPasswordEncrypted = await encryptPassword(currentPassword.value);
     newPasswordEncrypted = await encryptPassword(newPassword.value);
   } catch (e) {
-    pwdMsg.value = "Encryption error: " + (e?.message || "Failed to encrypt password. Please try again later.");
+    pwdMsg.value =
+      "Encryption error: " +
+      (e?.message || "Failed to encrypt password. Please try again later.");
     pwdMsgType.value = "error";
     return;
   }
@@ -597,7 +599,6 @@ onMounted(loadMe);
         </div>
       </main>
     </div>
-
   </div>
 </template>
 

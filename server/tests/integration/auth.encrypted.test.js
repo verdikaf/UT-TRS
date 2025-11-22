@@ -9,7 +9,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { User } from '../../src/models/User.js';
 import { Session } from '../../src/models/Session.js';
-import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -25,7 +24,7 @@ function buildApp() {
 
 function randomPhone() {
   // Indonesian-style starting with 628 plus 9 digits (total length 12)
-  return '628' + Math.floor(Math.random() * 1e9).toString().padStart(9,'0');
+  return '628' + Math.floor(Math.random() * 1e9).toString().padStart(9, '0');
 }
 
 function encryptWithPem(pubPem, plain) {
@@ -49,7 +48,8 @@ describe('Encrypted auth flows', () => {
     await mongoose.connect(uri, { dbName: 'ut_trs_test' });
     app = buildApp();
     // read persisted public key directly (static key approach)
-    const keyPath = path.join(__dirname, '../../keys/rsa_public.pem');
+    // Keys are generated/loaded in src/config/crypto.js under server/src/keys
+    const keyPath = path.join(__dirname, '../../src/keys/rsa_public.pem');
     pubPem = fs.readFileSync(keyPath, 'utf8');
   }, 60000);
 
@@ -151,7 +151,6 @@ describe('Encrypted auth flows', () => {
       .send({ currentPasswordEncrypted, newPasswordEncrypted })
       .expect(200);
     expect(changeRes.body.token).toBeDefined();
-    // login with new password
     const loginCipher = encryptWithPem(pubPem, newPw);
     await request(app)
       .post('/api/auth/login')
