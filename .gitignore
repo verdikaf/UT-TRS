@@ -32,3 +32,6 @@ coverage/
 
 # Agenda persistence (if exported)
 agendaJobs/
+
+# RSA keys (generated at runtime)
+server/src/keys/
