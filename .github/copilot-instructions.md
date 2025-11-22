@@ -1,7 +1,7 @@
 # Copilot Instructions for UT-TRS
 
 ## Project Overview
-UT-TRS is a reminder task application built with Express (backend), Vue 3 (frontend), MongoDB (database), Agenda.js (job scheduling), and Fonnte API (WhatsApp delivery). Users can register/login, create tasks with deadlines, and receive automated WhatsApp reminders.
+UT-TRS is a reminder task application built with Express (backend), Vue 3 (frontend), MongoDB (database), Agenda.js (job scheduling), and Fonnte API (WhatsApp delivery). Users can register / login, create tasks with deadlines, and receive automated WhatsApp reminders.
 
 ## Architecture
 
@@ -102,7 +102,7 @@ UT-TRS is a reminder task application built with Express (backend), Vue 3 (front
 - Initial send time = deadline - offset
 - If initial time is past:
   - One-time: schedule for 1 minute from now
-  - Weekly: roll forward by weeks until future, normalize deadline
+  - Weekly: roll forward by weekly intervals until a future date is reached, normalize deadline
 - After sending:
   - One-time: mark task completed
   - Weekly: shift deadline +7 days, schedule next reminder
