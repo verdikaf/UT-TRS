@@ -7,6 +7,7 @@ import { Session } from "../models/Session.js";
 import { isValidPhone, isStrongPassword } from "../utils/validators.js";
 import { cleanPhoneInput, makePhoneVariants } from "../utils/phone.js";
 import { sendWhatsAppMessage } from "../services/fonnte.js";
+import { logger } from "../utils/logger.js";
 
 const router = Router();
 
@@ -22,6 +23,7 @@ router.get("/phone-available", async (req, res) => {
     if (!isValidPhone(phoneTrim))
       return res.status(400).json({ error: "Invalid phone number format" });
     const existing = await User.findOne({ phone: phoneTrim });
+    logger.debug('phone.available.check', { phone: phoneTrim, available: !existing });
     return res.json({ available: !existing });
   } catch (e) {
     console.error(e);
@@ -45,17 +47,20 @@ router.post("/register", async (req, res) => {
         .json({ error: "Password must be at least 8 characters" });
     }
     const existing = await User.findOne({ phone: phoneTrim });
-    if (existing)
+    if (existing) {
+      logger.info('register.duplicate.phone', { phone: phoneTrim });
       return res.status(409).json({ error: "Phone number already registered" });
+    }
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await User.create({ name, phone: phoneTrim, passwordHash });
     const token = signToken(user);
+    logger.info('register.success', { userId: user._id.toString(), phone: user.phone });
     res.json({
       token,
       user: { id: user._id, name: user.name, phone: user.phone },
     });
   } catch (e) {
-    console.error(e);
+    logger.error('register.error', { err: e.message });
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -69,22 +74,23 @@ router.post("/login", async (req, res) => {
     // Normalize common user input variants for phone: trim, drop spaces/dashes, try with/without leading +
     const variants = makePhoneVariants(phone);
     const user = await User.findOne({ phone: { $in: variants } });
-    if (!user)
-      return res
-        .status(401)
-        .json({ error: "Incorrect phone number or password" });
+    if (!user) {
+      logger.info('login.fail.user.not.found', { phoneVariants: variants });
+      return res.status(401).json({ error: "Incorrect phone number or password" });
+    }
     const ok = await bcrypt.compare(password, user.passwordHash);
-    if (!ok)
-      return res
-        .status(401)
-        .json({ error: "Incorrect phone number or password" });
+    if (!ok) {
+      logger.info('login.fail.bad.password', { userId: user._id.toString() });
+      return res.status(401).json({ error: "Incorrect phone number or password" });
+    }
     const token = signToken(user);
+    logger.info('login.success', { userId: user._id.toString() });
     res.json({
       token,
       user: { id: user._id, name: user.name, phone: user.phone },
     });
   } catch (e) {
-    console.error(e);
+    logger.error('login.error', { err: e.message });
     res.status(500).json({ error: "Internal server error" });
   }
 });
