@@ -7,6 +7,7 @@ import authRoutes from './routes/auth.js';
 import taskRoutes from './routes/tasks.js';
 import profileRoutes from './routes/profile.js';
 import phoneRoutes from './routes/phone.js';
+import clientLogRoutes from './routes/clientLog.js';
 import { logger, attachRequestId } from './utils/logger.js';
 
 const app = express();
@@ -67,6 +68,7 @@ async function start() {
     }
     process.exit(1);
   });
+
 }
 
 start().catch((err) => {
