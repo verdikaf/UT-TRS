@@ -70,7 +70,6 @@ router.put("/info", auth, async (req, res) => {
 });
 
 // decryptPasswordBase64 already imported above
-
 router.put("/password", auth, async (req, res) => {
   try {
     const { currentPasswordEncrypted, newPasswordEncrypted } = req.body;
