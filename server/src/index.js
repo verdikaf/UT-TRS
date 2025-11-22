@@ -10,6 +10,16 @@ import phoneRoutes from "./routes/phone.js";
 import clientLogRoutes from "./routes/clientLog.js";
 import { logger, attachRequestId } from "./utils/logger.js";
 
+// Global error / rejection handlers - registered early to catch all errors
+process.on("unhandledRejection", (reason) => {
+  logger.error("unhandled.rejection", { reason: String(reason) });
+  process.exit(1);
+});
+process.on("uncaughtException", (err) => {
+  logger.error("uncaught.exception", { err: err.message });
+  process.exit(1);
+});
+
 const app = express();
 attachRequestId(app);
 
@@ -93,16 +103,6 @@ async function start() {
 
 start().catch((err) => {
   logger.error("startup.fail", { err: err.message });
-  process.exit(1);
-});
-
-// Global error / rejection handlers
-process.on("unhandledRejection", (reason) => {
-  logger.error("unhandled.rejection", { reason: String(reason) });
-  process.exit(1);
-});
-process.on("uncaughtException", (err) => {
-  logger.error("uncaught.exception", { err: err.message });
   process.exit(1);
 });
 
