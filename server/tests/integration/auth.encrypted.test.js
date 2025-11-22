@@ -34,14 +34,6 @@ function encryptWithPem(pubPem, plain) {
   return cipher.toString('base64');
 }
 
-async function createSession(user) {
-  const jti = 'jti-' + Math.random().toString(36).slice(2);
-  const token = jwt.sign({ id: user._id, phone: user.phone, name: user.name, jti }, process.env.JWT_SECRET, { expiresIn: '1d' });
-  const expiresAt = new Date(Date.now() + 24*60*60*1000);
-  await Session.create({ jti, user: user._id, lastActivityAt: new Date(), expiresAt, revoked: false });
-  return token;
-}
-
 describe('Encrypted auth flows', () => {
   let mongod; let app; let pubPem;
 
