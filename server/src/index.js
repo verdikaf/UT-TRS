@@ -35,11 +35,17 @@ app.use(
   cors({
     origin: (origin, cb) => {
       if (!origin) return cb(null, true); // curl / health checks
-      if (allowedOrigins.includes(origin)) return cb(null, true);
+      const normalized = origin.replace(/\/$/, "");
+      const match = allowedOrigins.find(
+        (o) => o === normalized || o === origin
+      );
+      logger.debug("cors.origin.check", { origin, normalized, match: !!match });
+      if (match) return cb(null, true);
       logger.warn("cors.block", { origin });
       return cb(new Error("Not allowed by CORS"));
     },
     credentials: true,
+    optionsSuccessStatus: 204,
   })
 );
 app.use(express.json());
@@ -98,7 +104,6 @@ async function start() {
     }
     process.exit(1);
   });
-
 }
 
 start().catch((err) => {
