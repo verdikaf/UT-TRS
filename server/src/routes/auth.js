@@ -26,7 +26,7 @@ router.get("/phone-available", async (req, res) => {
       logger.debug('phone.available.check', { phone: phoneTrim, available: !existing });
     return res.json({ available: !existing });
   } catch (e) {
-    console.error(e);
+    logger.error('phone.available.error', { err: e.message });
     return res.status(500).json({ error: "Internal server error" });
   }
 });
