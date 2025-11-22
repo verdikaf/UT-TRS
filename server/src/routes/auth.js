@@ -8,6 +8,7 @@ import { isValidPhone, isStrongPassword } from "../utils/validators.js";
 import { cleanPhoneInput, makePhoneVariants } from "../utils/phone.js";
 import { sendWhatsAppMessage } from "../services/fonnte.js";
 import { logger } from "../utils/logger.js";
+import { getPublicKeyPem, decryptPasswordBase64 } from "../config/crypto.js";
 
 const router = Router();
 
@@ -31,9 +32,14 @@ router.get("/phone-available", async (req, res) => {
   }
 });
 
+// Provide public key for client-side encryption
+router.get('/pubkey', (_req, res) => {
+  res.json({ key: getPublicKeyPem() });
+});
+
 router.post("/register", async (req, res) => {
   try {
-    const { name, phone, password } = req.body;
+    const { name, phone, password, passwordEncrypted } = req.body;
     if (!name || !phone || !password) {
       return res.status(400).json({ error: "Required fields are missing" });
     }
@@ -41,7 +47,13 @@ router.post("/register", async (req, res) => {
     if (!isValidPhone(phoneTrim)) {
       return res.status(400).json({ error: "Invalid phone number format" });
     }
-    if (!isStrongPassword(password)) {
+    let effectivePassword = password;
+    if (passwordEncrypted) {
+      const decrypted = decryptPasswordBase64(passwordEncrypted);
+      if (!decrypted) return res.status(400).json({ error: 'Invalid encrypted password' });
+      effectivePassword = decrypted;
+    }
+    if (!isStrongPassword(effectivePassword)) {
       return res
         .status(400)
         .json({ error: "Password must be at least 8 characters" });
@@ -51,7 +63,7 @@ router.post("/register", async (req, res) => {
       logger.info('register.duplicate.phone', { phone: phoneTrim });
       return res.status(409).json({ error: "Phone number already registered" });
     }
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(effectivePassword, 10);
     const user = await User.create({ name, phone: phoneTrim, passwordHash });
     const token = signToken(user);
     logger.info('register.success', { userId: user._id.toString(), phone: user.phone });
@@ -67,8 +79,8 @@ router.post("/register", async (req, res) => {
 
 router.post("/login", async (req, res) => {
   try {
-    const { phone, password } = req.body;
-    if (!phone || !password)
+    const { phone, password, passwordEncrypted } = req.body;
+    if (!phone || (!password && !passwordEncrypted))
       return res.status(400).json({ error: "Required fields are missing" });
 
     // Normalize common user input variants for phone: trim, drop spaces/dashes, try with/without leading +
@@ -78,7 +90,13 @@ router.post("/login", async (req, res) => {
       logger.info('login.fail.user.not.found', { phoneVariants: variants });
       return res.status(401).json({ error: "Incorrect phone number or password" });
     }
-    const ok = await bcrypt.compare(password, user.passwordHash);
+    let effectivePassword = password;
+    if (passwordEncrypted) {
+      const decrypted = decryptPasswordBase64(passwordEncrypted);
+      if (!decrypted) return res.status(400).json({ error: 'Invalid encrypted password' });
+      effectivePassword = decrypted;
+    }
+    const ok = await bcrypt.compare(effectivePassword, user.passwordHash);
     if (!ok) {
       logger.info('login.fail.bad.password', { userId: user._id.toString() });
       return res.status(401).json({ error: "Incorrect phone number or password" });
