@@ -1,6 +1,6 @@
 // Client-side RSA-OAEP encryption utility (static public key variant)
 // Public key is supplied via build-time env: VITE_RSA_PUBLIC_KEY
-// Falls back to a placeholder string if unset (will throw on import).
+// Throws if missing to avoid sending plaintext passwords.
 
 const PUBLIC_KEY_PEM = (import.meta.env.VITE_RSA_PUBLIC_KEY || "").trim();
 let importedKey = null;
@@ -43,4 +43,9 @@ export async function encryptPassword(plain) {
   for (let i = 0; i < bytes.length; i++)
     binary += String.fromCharCode(bytes[i]);
   return btoa(binary);
+}
+
+export async function buildEncryptedPasswordPayload(fieldName, plain) {
+  const passwordEncrypted = await encryptPassword(plain);
+  return { [fieldName]: passwordEncrypted };
 }

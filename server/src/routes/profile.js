@@ -66,6 +66,8 @@ router.put("/info", auth, async (req, res) => {
   }
 });
 
+import { decryptPasswordBase64 } from "../config/crypto.js";
+
 router.put("/password", auth, async (req, res) => {
   try {
     const { currentPasswordEncrypted, newPasswordEncrypted } = req.body;
