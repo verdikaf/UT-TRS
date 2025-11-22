@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
-// Persisted key files (single key, no rotation yet)
+// Persisted key files (single key, no rotation yet) stored under server/src/keys
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const keysDir = path.join(__dirname, "..", "keys");
@@ -35,11 +35,9 @@ function generateAndPersist() {
   privateKeyPem = privateKey;
 }
 
-// Initialize keypair (no busy-wait locking; assume single process or pre-generated files)
 if (!loadExisting()) {
   generateAndPersist();
 }
-
 export const PUBLIC_KEY_PEM = publicKeyPem;
 
 export function decryptPasswordBase64(b64) {

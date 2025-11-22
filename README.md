@@ -111,10 +111,17 @@ Use `"passwordEncrypted": "{{PASSWORD_ENC}}"` in request body.
 
 ### Setting up VITE_RSA_PUBLIC_KEY for the Client
 
-1. **Start the server once** to generate the RSA keypair. This will create `server/src/keys/rsa_public.pem` and `server/src/keys/rsa_private.pem`.
-2. **Copy the contents** of `server/src/keys/rsa_public.pem`.
-3. **Open** `client/.env` (create it if it doesn't exist).
-4. **Add** the following line (all on one line, no line breaks):
+1. Start the server once to generate the RSA keypair. This creates `server/src/keys/rsa_public.pem` and `server/src/keys/rsa_private.pem`.
+2. Copy the contents of `server/src/keys/rsa_public.pem`.
+3. Open `client/.env` (create if missing).
+4. Add one line (no line breaks):
+
+```
+VITE_RSA_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----MIIBIjANBgkq...END PUBLIC KEY-----"
+```
+
+Ensure the PEM is a single line with embedded `\n` removed or keep multi-line if tooling supports it (Vite will include as-is). For multi-line safety you can base64 the PEM and decode client-side.
+
 ## Fonnte
 
 - Ensure `FONNTE_TOKEN` is set in `server/.env`.

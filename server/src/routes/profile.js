@@ -5,6 +5,7 @@ import { User } from "../models/User.js";
 import { Session } from "../models/Session.js";
 import { isValidPhone, isStrongPassword } from "../utils/validators.js";
 import { decryptPasswordBase64 } from "../config/crypto.js";
+import { makePhoneVariants } from "../utils/phone.js";
 
 const router = Router();
 
@@ -32,8 +33,10 @@ router.put("/info", auth, async (req, res) => {
       const phoneTrim = String(phone).trim();
       if (!isValidPhone(phoneTrim))
         return res.status(400).json({ error: "Invalid phone number format" });
+      // Check variants to prevent + / no + duplication
+      const variants = makePhoneVariants(phoneTrim);
       const exists = await User.findOne({
-        phone: phoneTrim,
+        phone: { $in: variants },
         _id: { $ne: req.user.id },
       });
       if (exists)
@@ -66,6 +69,8 @@ router.put("/info", auth, async (req, res) => {
   }
 });
 
+// decryptPasswordBase64 already imported above
+
 router.put("/password", auth, async (req, res) => {
   try {
     const { currentPasswordEncrypted, newPasswordEncrypted } = req.body;
@@ -78,7 +83,9 @@ router.put("/password", auth, async (req, res) => {
       return res.status(400).json({ error: "Invalid encrypted password" });
     }
     if (!isStrongPassword(newPlain)) {
-      return res.status(400).json({ error: "Password must be at least 8 characters" });
+      return res
+        .status(400)
+        .json({ error: "Password must be at least 8 characters" });
     }
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ error: "User not found" });
@@ -88,7 +95,10 @@ router.put("/password", auth, async (req, res) => {
     }
     user.passwordHash = await bcrypt.hash(newPlain, 10);
     await user.save();
-    await Session.updateMany({ user: req.user.id }, { $set: { revoked: true } });
+    await Session.updateMany(
+      { user: req.user.id },
+      { $set: { revoked: true } }
+    );
     const token = signToken(user);
     return res.json({ token });
   } catch (e) {
