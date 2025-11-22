@@ -21,6 +21,9 @@ pnpm-debug.log*
 server/.env
 client/.env
 
+# Keys
+server/keys/*.pem
+
 # OS/Editor
 .DS_Store
 Thumbs.db
