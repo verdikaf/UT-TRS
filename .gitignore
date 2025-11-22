@@ -36,4 +36,5 @@ coverage/
 # Agenda persistence (if exported)
 agendaJobs/
 
-
+# Legacy paths (ignore if present)
+server/server/keys/
