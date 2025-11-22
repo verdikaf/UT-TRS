@@ -21,8 +21,8 @@ pnpm-debug.log*
 server/.env
 client/.env
 
-# Keys
-server/keys/*.pem
+# RSA Keys (generated at runtime, persisted for stable encryption)
+server/src/keys/*.pem
 
 # OS/Editor
 .DS_Store
@@ -36,5 +36,4 @@ coverage/
 # Agenda persistence (if exported)
 agendaJobs/
 
-# RSA Keys (generated at runtime)
-server/server/keys/
+
