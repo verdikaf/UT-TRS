@@ -40,7 +40,7 @@ app.use(
       logger.debug("cors.origin.check", { origin, normalized, match: !!match });
       if (match) return cb(null, true);
       logger.warn("cors.block", { origin });
-      return cb(null, false);
+      return cb(new Error("Not allowed by CORS"));
     },
     credentials: true,
     optionsSuccessStatus: 204,
