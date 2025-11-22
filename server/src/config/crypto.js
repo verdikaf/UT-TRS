@@ -21,7 +21,6 @@ function ensureKeypair() {
   if (!fs.existsSync(keysDir)) {
     fs.mkdirSync(keysDir, { recursive: true });
   }
-
   // Check if keys already exist
   if (fs.existsSync(pubPath) && fs.existsSync(privPath)) {
     publicKeyPem = fs.readFileSync(pubPath, "utf8");

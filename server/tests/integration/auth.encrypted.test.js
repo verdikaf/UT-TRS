@@ -1,16 +1,16 @@
-import express from "express";
-import mongoose from "mongoose";
-import request from "supertest";
-import { MongoMemoryServer } from "mongodb-memory-server";
-import authRouter from "../../src/routes/auth.js";
-import profileRouter from "../../src/routes/profile.js";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
-import { User } from "../../src/models/User.js";
-import { Session } from "../../src/models/Session.js";
-import jwt from "jsonwebtoken";
-import crypto from "crypto";
+import express from 'express';
+import mongoose from 'mongoose';
+import request from 'supertest';
+import { MongoMemoryServer } from 'mongodb-memory-server';
+import authRouter from '../../src/routes/auth.js';
+import profileRouter from '../../src/routes/profile.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { User } from '../../src/models/User.js';
+import { Session } from '../../src/models/Session.js';
+import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -46,10 +46,15 @@ function encryptWithPem(pubPem, plain) {
   return cipher.toString("base64");
 }
 
+<<<<<<< HEAD
 describe("Encrypted auth flows", () => {
   let mongod;
   let app;
   let pubPem;
+=======
+describe('Encrypted auth flows', () => {
+  let mongod; let app; let pubPem;
+>>>>>>> c18ba24765328e68f814b85e8fc7dfe84898594b
 
   beforeAll(async () => {
     process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";

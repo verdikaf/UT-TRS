@@ -110,10 +110,6 @@ const changePassword = async () => {
     return;
   }
   try {
-    const currentPasswordEncrypted = await encryptPassword(
-      currentPassword.value
-    );
-    const newPasswordEncrypted = await encryptPassword(newPassword.value);
     const { data } = await http.put("/api/profile/password", {
       currentPasswordEncrypted,
       newPasswordEncrypted,
