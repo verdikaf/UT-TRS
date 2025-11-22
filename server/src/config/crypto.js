@@ -66,9 +66,8 @@ function ensureKeypair() {
       // Wait briefly and retry reading existing keys
       let retries = 10;
       while (retries > 0 && (!fs.existsSync(pubPath) || !fs.existsSync(privPath))) {
-        // Wait 100ms between retries
-        const start = Date.now();
-        while (Date.now() - start < 100) { /* busy wait */ }
+        // Sleep 100ms between retries (synchronous sleep using Atomics.wait)
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100);
         retries--;
       }
       
@@ -87,8 +86,9 @@ function ensureKeypair() {
       try {
         fs.closeSync(lockFd);
         fs.unlinkSync(lockPath);
-      } catch (e) {
-        // Ignore cleanup errors
+      } catch (cleanupErr) {
+        // Log cleanup errors but don't fail the operation
+        console.warn('Failed to clean up lock file:', cleanupErr.message);
       }
     }
   }
