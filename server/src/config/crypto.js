@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 
 // Persisted key files (single key, no rotation yet)
-const keysDir = path.join(process.cwd(), 'server', 'keys');
+const keysDir = path.join(__dirname, '..', 'keys');
 const pubPath = path.join(keysDir, 'rsa_public.pem');
 const privPath = path.join(keysDir, 'rsa_private.pem');
 
