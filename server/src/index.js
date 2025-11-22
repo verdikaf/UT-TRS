@@ -99,6 +99,7 @@ start().catch((err) => {
 // Global error / rejection handlers
 process.on("unhandledRejection", (reason) => {
   logger.error("unhandled.rejection", { reason: String(reason) });
+  process.exit(1);
 });
 process.on("uncaughtException", (err) => {
   logger.error("uncaught.exception", { err: err.message });
