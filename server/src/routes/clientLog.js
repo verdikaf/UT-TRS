@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { logger } from '../utils/logger.js';
 
 const router = Router();
 
@@ -11,10 +12,10 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'type and message are required' });
     }
     // For now just print to server console.
-    console.error('[ClientLog]', JSON.stringify({ type, message, stack, info, component, time }));
+    logger.error('[ClientLog]', { type, message, stack, info, component, time });
     return res.json({ ok: true });
   } catch (e) {
-    console.error('Failed to process client log', e);
+    logger.error('Failed to process client log', { err: e.message });
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
