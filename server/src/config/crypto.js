@@ -13,6 +13,10 @@ const privPath = path.join(keysDir, 'rsa_private.pem');
 let publicKeyPem;
 let privateKeyPem;
 
+// Lock retry configuration
+const MAX_LOCK_RETRIES = 10;
+const LOCK_RETRY_DELAY_MS = 100;
+
 function ensureKeypair() {
   if (!fs.existsSync(keysDir)) {
     fs.mkdirSync(keysDir, { recursive: true });
@@ -64,10 +68,13 @@ function ensureKeypair() {
     if (err.code === 'EEXIST') {
       // Lock file exists, another process is generating keys
       // Wait briefly and retry reading existing keys
-      let retries = 10;
+      let retries = MAX_LOCK_RETRIES;
       while (retries > 0 && (!fs.existsSync(pubPath) || !fs.existsSync(privPath))) {
-        // Sleep 100ms between retries (synchronous sleep using Atomics.wait)
-        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100);
+        // Synchronous sleep using performance timer (compatible across Node.js versions)
+        const start = performance.now();
+        while (performance.now() - start < LOCK_RETRY_DELAY_MS) {
+          // Busy wait - unavoidable in synchronous module initialization
+        }
         retries--;
       }
       
