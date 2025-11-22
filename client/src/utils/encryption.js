@@ -37,7 +37,3 @@ export async function encryptPassword(plain) {
   return btoa(binary);
 }
 
-export async function buildEncryptedPasswordPayload(fieldName, plain) {
-  const passwordEncrypted = await encryptPassword(plain);
-  return { [fieldName]: passwordEncrypted };
-}
