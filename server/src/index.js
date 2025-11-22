@@ -108,7 +108,6 @@ start().catch((err) => {
   logger.error("startup.fail", { err: err.message });
   process.exit(1);
 });
-
 // Graceful shutdown
 process.on("SIGINT", async () => {
   try {
