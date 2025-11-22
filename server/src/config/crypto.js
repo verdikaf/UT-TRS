@@ -13,31 +13,33 @@ const privPath = path.join(keysDir, "rsa_private.pem");
 let publicKeyPem;
 let privateKeyPem;
 
-function ensureKeypair() {
-  if (!fs.existsSync(keysDir)) {
-    fs.mkdirSync(keysDir, { recursive: true });
-  }
-
-  // Check if keys already exist
+function loadExisting() {
   if (fs.existsSync(pubPath) && fs.existsSync(privPath)) {
     publicKeyPem = fs.readFileSync(pubPath, "utf8");
     privateKeyPem = fs.readFileSync(privPath, "utf8");
-    return;
+    return true;
   }
+  return false;
+}
+
+function generateAndPersist() {
+  if (!fs.existsSync(keysDir)) fs.mkdirSync(keysDir, { recursive: true });
   const { publicKey, privateKey } = crypto.generateKeyPairSync("rsa", {
     modulusLength: 2048,
     publicKeyEncoding: { type: "spki", format: "pem" },
     privateKeyEncoding: { type: "pkcs8", format: "pem" },
   });
+  fs.writeFileSync(pubPath, publicKey, { mode: 0o644 });
+  fs.writeFileSync(privPath, privateKey, { mode: 0o600 });
   publicKeyPem = publicKey;
   privateKeyPem = privateKey;
-  fs.writeFileSync(pubPath, publicKeyPem, { mode: 0o644 });
-  fs.writeFileSync(privPath, privateKeyPem, { mode: 0o600 });
 }
 
-ensureKeypair();
+// Initialize keypair (no busy-wait locking; assume single process or pre-generated files)
+if (!loadExisting()) {
+  generateAndPersist();
+}
 
-// Public key will be consumed directly by build-time tooling / client env
 export const PUBLIC_KEY_PEM = publicKeyPem;
 
 export function decryptPasswordBase64(b64) {
