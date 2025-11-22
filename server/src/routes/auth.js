@@ -5,9 +5,10 @@ import { User } from "../models/User.js";
 import { auth, signToken } from "../middleware/auth.js";
 import { Session } from "../models/Session.js";
 import { isValidPhone, isStrongPassword } from "../utils/validators.js";
-import { makePhoneVariants, canonicalPhone } from "../utils/phone.js";
+import { canonicalPhone, makePhoneVariants } from "../utils/phone.js";
 import { sendWhatsAppMessage } from "../services/fonnte.js";
 import { logger } from "../utils/logger.js";
+import { decryptPasswordBase64 } from "../config/crypto.js";
 import { decryptPasswordBase64 } from "../config/crypto.js";
 
 const router = Router();
@@ -17,7 +18,9 @@ router.get("/phone-available", async (req, res) => {
   try {
     const phone = req.query.phone;
     if (!phone) {
-      return res.status(400).json({ error: "Phone query parameter is required" });
+      return res
+        .status(400)
+        .json({ error: "Phone query parameter is required" });
     }
     const canonical = canonicalPhone(phone);
     if (!isValidPhone(canonical)) {
@@ -25,10 +28,14 @@ router.get("/phone-available", async (req, res) => {
     }
     const variants = makePhoneVariants(phone);
     const existing = await User.findOne({ phone: { $in: variants } });
-    logger.debug('phone.available.check', { canonical, variants, available: !existing });
+    logger.debug("phone.available.check", {
+      canonical,
+      variants,
+      available: !existing,
+    });
     return res.json({ available: !existing });
   } catch (e) {
-    logger.error('phone.available.error', { err: e.message });
+    logger.error("phone.available.error", { err: e.message });
     return res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -46,23 +53,32 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ error: "Invalid phone number format" });
     }
     const decrypted = decryptPasswordBase64(passwordEncrypted);
-    if (!decrypted) return res.status(400).json({ error: 'Invalid encrypted password' });
+    if (!decrypted)
+      return res.status(400).json({ error: "Invalid encrypted password" });
     if (!isStrongPassword(decrypted)) {
-      return res.status(400).json({ error: "Password must be at least 8 characters" });
+      return res
+        .status(400)
+        .json({ error: "Password must be at least 8 characters" });
     }
     const variants = makePhoneVariants(phone);
     const existing = await User.findOne({ phone: { $in: variants } });
     if (existing) {
-      logger.info('register.duplicate.phone', { canonical, variants });
+      logger.info("register.duplicate.phone", { phoneVariants: variants });
       return res.status(409).json({ error: "Phone number already registered" });
     }
     const passwordHash = await bcrypt.hash(decrypted, 10);
     const user = await User.create({ name, phone: canonical, passwordHash });
     const token = signToken(user);
-    logger.info('register.success', { userId: user._id.toString(), phone: user.phone, canonical });
-    res.json({ token, user: { id: user._id, name: user.name, phone: user.phone } });
+    logger.info("register.success", {
+      userId: user._id.toString(),
+      phone: user.phone,
+    });
+    res.json({
+      token,
+      user: { id: user._id, name: user.name, phone: user.phone },
+    });
   } catch (e) {
-    logger.error('register.error', { err: e.message });
+    logger.error("register.error", { err: e.message });
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -76,21 +92,29 @@ router.post("/login", async (req, res) => {
     const variants = makePhoneVariants(phone);
     const user = await User.findOne({ phone: { $in: variants } });
     if (!user) {
-      logger.info('login.fail.user.not.found', { phoneVariants: variants });
-      return res.status(401).json({ error: "Incorrect phone number or password" });
+      logger.info("login.fail.user.not.found", { phoneVariants: variants });
+      return res
+        .status(401)
+        .json({ error: "Incorrect phone number or password" });
     }
     const decrypted = decryptPasswordBase64(passwordEncrypted);
-    if (!decrypted) return res.status(400).json({ error: 'Invalid encrypted password' });
+    if (!decrypted)
+      return res.status(400).json({ error: "Invalid encrypted password" });
     const ok = await bcrypt.compare(decrypted, user.passwordHash);
     if (!ok) {
-      logger.info('login.fail.bad.password', { userId: user._id.toString() });
-      return res.status(401).json({ error: "Incorrect phone number or password" });
+      logger.info("login.fail.bad.password", { userId: user._id.toString() });
+      return res
+        .status(401)
+        .json({ error: "Incorrect phone number or password" });
     }
     const token = signToken(user);
-    logger.info('login.success', { userId: user._id.toString() });
-    res.json({ token, user: { id: user._id, name: user.name, phone: user.phone } });
+    logger.info("login.success", { userId: user._id.toString() });
+    res.json({
+      token,
+      user: { id: user._id, name: user.name, phone: user.phone },
+    });
   } catch (e) {
-    logger.error('login.error', { err: e.message });
+    logger.error("login.error", { err: e.message });
     res.status(500).json({ error: "Internal server error" });
   }
 });
