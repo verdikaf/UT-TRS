@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { logger } from '../utils/logger.js';
 
 const router = Router();
 
@@ -10,11 +11,11 @@ router.post('/', async (req, res) => {
     if (!type || !message) {
       return res.status(400).json({ error: 'type and message are required' });
     }
-    // For now just print to server console.
-    console.error('[ClientLog]', JSON.stringify({ type, message, stack, info, component, time }));
+    // Use structured logger; normal ingestion is info level.
+    logger.info('client.log.ingest', { type, message, stack, info, component, time });
     return res.json({ ok: true });
   } catch (e) {
-    console.error('Failed to process client log', e);
+    logger.error('client.log.ingest.error', { err: e.message });
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
