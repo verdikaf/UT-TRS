@@ -70,10 +70,13 @@ function ensureKeypair() {
       // Wait briefly and retry reading existing keys
       let retries = MAX_LOCK_RETRIES;
       while (retries > 0 && (!fs.existsSync(pubPath) || !fs.existsSync(privPath))) {
-        // Synchronous sleep using performance timer (compatible across Node.js versions)
+        // Synchronous sleep using performance timer
+        // Note: Busy-wait is unavoidable here because this code runs during synchronous module
+        // initialization (top-level import). Alternative approaches like setTimeout or async/await
+        // would require refactoring to lazy initialization, which changes the module API.
         const start = performance.now();
         while (performance.now() - start < LOCK_RETRY_DELAY_MS) {
-          // Busy wait - unavoidable in synchronous module initialization
+          // Busy wait
         }
         retries--;
       }
@@ -89,7 +92,7 @@ function ensureKeypair() {
     }
   } finally {
     // Clean up lock file
-    if (lockFd !== undefined) {
+    if (typeof lockFd === 'number') {
       try {
         fs.closeSync(lockFd);
         fs.unlinkSync(lockPath);
