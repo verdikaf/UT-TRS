@@ -26,7 +26,7 @@ function ensureKeypair() {
   });
   publicKeyPem = publicKey;
   privateKeyPem = privateKey;
-  fs.writeFileSync(pubPath, publicKeyPem, { mode: 0o600 });
+  fs.writeFileSync(pubPath, publicKeyPem, { mode: 0o644 });
   fs.writeFileSync(privPath, privateKeyPem, { mode: 0o600 });
 }
 
