@@ -5,7 +5,7 @@ import { User } from "../models/User.js";
 import { auth, signToken } from "../middleware/auth.js";
 import { Session } from "../models/Session.js";
 import { isValidPhone, isStrongPassword } from "../utils/validators.js";
-import { cleanPhoneInput, makePhoneVariants } from "../utils/phone.js";
+import { makePhoneVariants, canonicalPhone } from "../utils/phone.js";
 import { sendWhatsAppMessage } from "../services/fonnte.js";
 import { logger } from "../utils/logger.js";
 import { decryptPasswordBase64 } from "../config/crypto.js";
@@ -16,15 +16,16 @@ const router = Router();
 router.get("/phone-available", async (req, res) => {
   try {
     const phone = req.query.phone;
-    if (!phone)
-      return res
-        .status(400)
-        .json({ error: "Phone query parameter is required" });
-    const phoneTrim = cleanPhoneInput(phone);
-    if (!isValidPhone(phoneTrim))
+    if (!phone) {
+      return res.status(400).json({ error: "Phone query parameter is required" });
+    }
+    const canonical = canonicalPhone(phone);
+    if (!isValidPhone(canonical)) {
       return res.status(400).json({ error: "Invalid phone number format" });
-    const existing = await User.findOne({ phone: phoneTrim });
-    logger.debug('phone.available.check', { phone: phoneTrim, available: !existing });
+    }
+    const variants = makePhoneVariants(phone);
+    const existing = await User.findOne({ phone: { $in: variants } });
+    logger.debug('phone.available.check', { canonical, variants, available: !existing });
     return res.json({ available: !existing });
   } catch (e) {
     logger.error('phone.available.error', { err: e.message });
@@ -40,8 +41,8 @@ router.post("/register", async (req, res) => {
     if (!name || !phone || !passwordEncrypted) {
       return res.status(400).json({ error: "Required fields are missing" });
     }
-    const phoneTrim = cleanPhoneInput(phone);
-    if (!isValidPhone(phoneTrim)) {
+    const canonical = canonicalPhone(phone);
+    if (!isValidPhone(canonical)) {
       return res.status(400).json({ error: "Invalid phone number format" });
     }
     const decrypted = decryptPasswordBase64(passwordEncrypted);
@@ -49,15 +50,16 @@ router.post("/register", async (req, res) => {
     if (!isStrongPassword(decrypted)) {
       return res.status(400).json({ error: "Password must be at least 8 characters" });
     }
-    const existing = await User.findOne({ phone: phoneTrim });
+    const variants = makePhoneVariants(phone);
+    const existing = await User.findOne({ phone: { $in: variants } });
     if (existing) {
-      logger.info('register.duplicate.phone', { phone: phoneTrim });
+      logger.info('register.duplicate.phone', { canonical, variants });
       return res.status(409).json({ error: "Phone number already registered" });
     }
     const passwordHash = await bcrypt.hash(decrypted, 10);
-    const user = await User.create({ name, phone: phoneTrim, passwordHash });
+    const user = await User.create({ name, phone: canonical, passwordHash });
     const token = signToken(user);
-    logger.info('register.success', { userId: user._id.toString(), phone: user.phone });
+    logger.info('register.success', { userId: user._id.toString(), phone: user.phone, canonical });
     res.json({ token, user: { id: user._id, name: user.name, phone: user.phone } });
   } catch (e) {
     logger.error('register.error', { err: e.message });
