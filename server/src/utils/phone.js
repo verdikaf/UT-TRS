@@ -1,14 +1,17 @@
 export function cleanPhoneInput(input) {
-  const s = String(input ?? "")
+  return String(input ?? "")
     .trim()
     .replace(/[\s-]/g, "");
-  return s;
 }
 
+// Canonical form: no leading '+'
+export function canonicalPhone(input) {
+  const cleaned = cleanPhoneInput(input);
+  return cleaned.startsWith("+") ? cleaned.slice(1) : cleaned;
+}
+
+// Returns array [canonical, "+" + canonical] for lookup flexibility
 export function makePhoneVariants(rawInput) {
-  const raw = cleanPhoneInput(rawInput);
-  const set = new Set([raw]);
-  if (raw.startsWith("+")) set.add(raw.slice(1));
-  else set.add("+" + raw);
-  return Array.from(set);
+  const c = canonicalPhone(rawInput);
+  return [c, "+" + c];
 }
