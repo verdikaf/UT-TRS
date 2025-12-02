@@ -5,7 +5,7 @@ import { User } from "../models/User.js";
 import { auth, signToken } from "../middleware/auth.js";
 import { Session } from "../models/Session.js";
 import { isValidPhone, isStrongPassword } from "../utils/validators.js";
-import { cleanPhoneInput, makePhoneVariants, canonicalPhone } from "../utils/phone.js";
+import { makePhoneVariants, canonicalPhone } from "../utils/phone.js";
 import { sendWhatsAppMessage } from "../services/fonnte.js";
 import { logger } from "../utils/logger.js";
 import { decryptPasswordBase64 } from "../config/crypto.js";
