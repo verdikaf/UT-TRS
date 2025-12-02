@@ -59,6 +59,7 @@ router.post("/register", async (req, res) => {
         .status(400)
         .json({ error: "Password must be at least 8 characters" });
     }
+    // Prevent duplicate registration across plus/no-plus variants
     const variants = makePhoneVariants(phone);
     const existing = await User.findOne({ phone: { $in: variants } });
     if (existing) {
