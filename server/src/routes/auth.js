@@ -9,7 +9,6 @@ import { canonicalPhone, makePhoneVariants } from "../utils/phone.js";
 import { sendWhatsAppMessage } from "../services/fonnte.js";
 import { logger } from "../utils/logger.js";
 import { decryptPasswordBase64 } from "../config/crypto.js";
-import { decryptPasswordBase64 } from "../config/crypto.js";
 
 const router = Router();
 
